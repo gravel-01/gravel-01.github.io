@@ -110,7 +110,6 @@
                     <a href="#market-data" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">市场洞察</a>
                     <a href="#user-pain-points" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">用户痛点</a>
                     <a href="#core-workflow" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">核心工作流</a>
-                    <a href="#feature-demo" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">交互演示</a>
                     <a href="#mock-interview-app-section" class="border-transparent text-primary hover:border-primary hover:text-primary inline-flex items-center px-1 pt-1 border-b-2 text-sm font-bold">真实体验 <i class="fa-solid fa-bolt ml-1"></i></a>
                 </div>
             </div>
@@ -509,81 +508,6 @@
         </div>
     </section>
 
-    <!-- Feature Demo: Simulation -->
-    <section id="feature-demo" class="py-16 bg-blue-50">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-8">
-                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">局部机制演示</h2>
-                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900">
-                    体验“柔性干预”机制
-                </p>
-                <p class="mt-4 text-gray-600">
-                    在面试卡壳超过5秒时，Agent 会根据你的设置决定是“冷眼旁观”还是“递上急救包”。
-                </p>
-            </div>
-
-            <!-- Simulation UI -->
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col h-[600px]">
-                <!-- Chat Header -->
-                <div class="bg-white border-b p-4 flex justify-between items-center shadow-sm z-10">
-                    <div class="flex items-center">
-                        <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl">🤖</div>
-                        <div class="ml-3">
-                            <h3 class="font-bold text-gray-800">ProView AI 面试官</h3>
-                            <p class="text-xs text-green-500 flex items-center">● 在线 | 模式: <span id="current-mode-text" class="font-bold ml-1">严厉 & 引导开启</span></p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <label class="flex items-center text-xs text-gray-600">
-                            <span class="mr-2">引导模式:</span>
-                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                                <input type="checkbox" name="toggle" id="mode-toggle" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300 checked:right-0 checked:border-blue-600"/>
-                                <label for="mode-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
-                            </div>
-                        </label>
-                        <button onclick="resetChat()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1 rounded">重置</button>
-                    </div>
-                </div>
-
-                <!-- Chat Body -->
-                <div id="demo-chat-box" class="flex-1 bg-gray-50 p-6 overflow-y-auto chat-scroll space-y-4">
-                    <!-- System Msg -->
-                    <div class="flex justify-center">
-                        <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">面试已开始，正在录音...</span>
-                    </div>
-
-                    <!-- AI Msg -->
-                    <div class="flex items-start">
-                        <div class="h-8 w-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-xs">AI</div>
-                        <div class="ml-3 bg-white p-3 rounded-r-xl rounded-bl-xl shadow-sm text-sm text-gray-800 border border-gray-100 max-w-[80%]">
-                            我看了你的简历，你提到负责了高并发系统的重构。请具体说一下，你是用什么指标来衡量重构效果的？优化前后的QPS对比数据是多少？
-                        </div>
-                    </div>
-
-                </div>
-
-                <!-- Chat Controls -->
-                <div class="p-4 bg-white border-t">
-                    <div class="flex items-center justify-between mb-2">
-                        <div id="status-indicator" class="text-xs font-bold text-gray-500 flex items-center">
-                            <span class="w-2 h-2 rounded-full bg-gray-400 mr-2"></span> 等待用户回答...
-                        </div>
-                        <div id="demo-timer" class="text-xs text-red-500 font-mono hidden">沉默时长: 0.0s</div>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button onclick="startUserResponse()" id="btn-speak" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold transition-all flex items-center justify-center">
-                            🎤 模拟回答 (点击开始)
-                        </button>
-                        <button onclick="simulateSilence()" id="btn-silence" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-lg font-bold transition-all flex items-center justify-center border-b-4 border-amber-700 active:border-b-0 active:translate-y-1">
-                            😶 模拟卡壳 (沉默)
-                        </button>
-                    </div>
-                    <p class="text-xs text-center text-gray-400 mt-2">提示：点击“模拟卡壳”来触发系统的VAD干预机制</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- NEW SECTION: Full Mock Interview App Embedded -->
     <section id="mock-interview-app-section" class="py-16 bg-white border-t border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -667,6 +591,35 @@
                                         <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
                                         <p class="text-sm text-slate-500">点击或拖拽文件到此处上传，AI将根据简历深入挖掘</p>
                                     </div>
+                                </div>
+
+                                <!-- ProView 核心功能开关 -->
+                                <div class="space-y-3 pt-4 border-t border-slate-100">
+                                    <h3 class="text-sm font-bold text-slate-800 mb-2"><i class="fa-solid fa-wand-magic-sparkles text-primary mr-2"></i>开启专属训练功能</h3>
+                                    
+                                    <!-- Toggle 1: VAD 柔性干预 -->
+                                    <label class="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-indigo-50 cursor-pointer transition-colors bg-white">
+                                        <div>
+                                            <div class="font-bold text-slate-800 text-sm">🆘 VAD 柔性防卡壳干预</div>
+                                            <div class="text-xs text-slate-500 mt-1">沉默超5秒，AI 自动提供高情商话术与思路引导</div>
+                                        </div>
+                                        <div class="relative inline-block w-12 h-6 align-middle select-none transition duration-200 ease-in">
+                                            <input type="checkbox" name="toggle-vad" id="feature-vad" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 checked:right-0 checked:border-primary"/>
+                                            <label for="feature-vad" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label>
+                                        </div>
+                                    </label>
+
+                                    <!-- Toggle 2: 简历找茬 -->
+                                    <label class="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-indigo-50 cursor-pointer transition-colors bg-white">
+                                        <div>
+                                            <div class="font-bold text-slate-800 text-sm">🔍 DeepSeek 简历压力深挖</div>
+                                            <div class="text-xs text-slate-500 mt-1">智能识别简历注水点，针对异常数据进行连环追问</div>
+                                        </div>
+                                        <div class="relative inline-block w-12 h-6 align-middle select-none transition duration-200 ease-in">
+                                            <input type="checkbox" name="toggle-deep" id="feature-deep" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-slate-300 checked:right-0 checked:border-primary"/>
+                                            <label for="feature-deep" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer"></label>
+                                        </div>
+                                    </label>
                                 </div>
 
                                 <button type="button" onclick="mockStartInterview()" class="w-full bg-primary hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 text-lg">
@@ -830,10 +783,10 @@
     <style>
         .toggle-checkbox:checked {
             right: 0;
-            border-color: #2563EB;
+            border-color: #4F46E5;
         }
         .toggle-checkbox:checked + .toggle-label {
-            background-color: #2563EB;
+            background-color: #4F46E5;
         }
     </style>
 
@@ -1041,119 +994,6 @@
             const container = document.getElementById('workflow-content');
             container.innerHTML = workflowContents[stepKey];
         }
-
-        // --- Demo Chat Simulation Logic ---
-        let chatState = {
-            timer: 0,
-            interval: null,
-            isRecording: false,
-            isSilence: false
-        };
-
-        function resetChat() {
-            clearInterval(chatState.interval);
-            chatState = { timer: 0, interval: null, isRecording: false, isSilence: false };
-            document.getElementById('demo-chat-box').innerHTML = `
-                <div class="flex justify-center"><span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">面试已开始，正在录音...</span></div>
-                <div class="flex items-start">
-                    <div class="h-8 w-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-xs">AI</div>
-                    <div class="ml-3 bg-white p-3 rounded-r-xl rounded-bl-xl shadow-sm text-sm text-gray-800 border border-gray-100 max-w-[80%]">
-                        我看了你的简历，你提到负责了高并发系统的重构。请具体说一下，你是用什么指标来衡量重构效果的？优化前后的QPS对比数据是多少？
-                    </div>
-                </div>`;
-            updateStatus('等待用户回答...', 'gray');
-            document.getElementById('demo-timer').classList.add('hidden');
-        }
-
-        function updateStatus(text, color) {
-            const el = document.getElementById('status-indicator');
-            const colorClass = color === 'red' ? 'bg-red-500 animate-pulse' : (color === 'green' ? 'bg-green-500' : 'bg-gray-400');
-            el.innerHTML = `<span class="w-2 h-2 rounded-full ${colorClass} mr-2"></span> ${text}`;
-        }
-
-        function appendMessage(sender, text, type = 'normal') {
-            const box = document.getElementById('demo-chat-box');
-            let html = '';
-            if (sender === 'user') {
-                html = `
-                <div class="flex items-end justify-end">
-                    <div class="mr-3 bg-blue-600 p-3 rounded-l-xl rounded-tr-xl shadow-sm text-sm text-white max-w-[80%]">
-                        ${text}
-                    </div>
-                    <div class="h-8 w-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-600 text-xs">You</div>
-                </div>`;
-            } else if (sender === 'ai') {
-                const style = type === 'rescue' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-white border-gray-100 text-gray-800';
-                const icon = type === 'rescue' ? '🆘' : 'AI';
-                const bgIcon = type === 'rescue' ? 'bg-amber-500' : 'bg-blue-600';
-                
-                html = `
-                <div class="flex items-start animate-fade-in">
-                    <div class="h-8 w-8 rounded-full ${bgIcon} flex-shrink-0 flex items-center justify-center text-white text-xs">${icon}</div>
-                    <div class="ml-3 ${style} p-3 rounded-r-xl rounded-bl-xl shadow-sm text-sm border max-w-[80%]">
-                        ${text}
-                    </div>
-                </div>`;
-            }
-            box.insertAdjacentHTML('beforeend', html);
-            box.scrollTop = box.scrollHeight;
-        }
-
-        function startUserResponse() {
-            clearInterval(chatState.interval);
-            document.getElementById('demo-timer').classList.add('hidden');
-            updateStatus('用户正在回答...', 'green');
-            
-            setTimeout(() => {
-                appendMessage('user', '额...这个指标的话...主要是看那个...系统的响应速度...');
-                updateStatus('AI 正在分析...', 'blue');
-                setTimeout(() => {
-                    appendMessage('ai', '这就太笼统了。“响应速度”具体是指TP99还是平均响应时间？具体数值提升了多少毫秒？如果是高并发，CPU利用率的变化呢？');
-                    updateStatus('等待用户回答...', 'gray');
-                }, 1500);
-            }, 800);
-        }
-
-        function simulateSilence() {
-            const guideEnabled = document.getElementById('mode-toggle').checked;
-            
-            clearInterval(chatState.interval);
-            chatState.timer = 0;
-            updateStatus('检测到沉默...', 'red');
-            document.getElementById('demo-timer').classList.remove('hidden');
-            
-            chatState.interval = setInterval(() => {
-                chatState.timer += 0.1;
-                document.getElementById('demo-timer').innerText = `沉默时长: ${chatState.timer.toFixed(1)}s`;
-                
-                if (chatState.timer > 5.0) {
-                    clearInterval(chatState.interval);
-                    if (guideEnabled) {
-                        triggerRescue();
-                    } else {
-                        // Strict mode behavior
-                        appendMessage('ai', '（冷场记录+1）如果这个问题答不上来，我们可以换下一个。但这也说明你对该项目的核心数据掌握不足。', 'normal');
-                        updateStatus('AI 记录扣分...', 'gray');
-                        document.getElementById('demo-timer').classList.add('hidden');
-                    }
-                }
-            }, 100);
-        }
-
-        function triggerRescue() {
-            updateStatus('触发柔性干预机制', 'amber');
-            // Simulation of "Guide/First Aid"
-            setTimeout(() => {
-                appendMessage('ai', '<strong>[系统提示]</strong> 别紧张。如果你不记得具体数据，可以试着从“系统吞吐量”或“资源利用率”的角度大致描述一下优化前后的瓶颈差异。', 'rescue');
-                document.getElementById('demo-timer').classList.add('hidden');
-                updateStatus('等待用户继续...', 'gray');
-            }, 500);
-        }
-
-        document.getElementById('mode-toggle').addEventListener('change', (e) => {
-            const status = e.target.checked ? "严厉 & 引导开启" : "严厉 & 引导关闭";
-            document.getElementById('current-mode-text').innerText = status;
-        });
 
         // Initialize Global Elements
         document.addEventListener('DOMContentLoaded', () => {
