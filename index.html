@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProView AI Interviewer - 产品深度解析</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #F3F4F6; /* Cool Gray 100 - Neutral Background */
+            color: #1F2937; /* Gray 800 */
+        }
+        /* Chart Container Styling - Mandatory per requirements */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 380px;
+            }
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(229, 231, 235, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .active-tab {
+            border-bottom: 2px solid #3B82F6;
+            color: #3B82F6;
+            font-weight: 600;
+        }
+        .inactive-tab {
+            color: #6B7280;
+            border-bottom: 2px solid transparent;
+        }
+        .inactive-tab:hover {
+            color: #374151;
+        }
+        /* Custom scrollbar for chat demo */
+        .chat-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+    <!-- Chosen Palette: Warm Professional - #3B82F6 (Blue) for trust/tech, #F59E0B (Amber) for warmth/alert, Neutrals for background -->
+    <!-- Application Structure Plan: 
+         1. Hero: Product Identity & Core Value.
+         2. Market Insight (Dashboard): Interactive data visualization of the survey results to justify the product need.
+         3. User Personas: Clickable cards detailing the specific pain points of Job Seekers, Postgrads, and Defense participants.
+         4. Core Workflow (Interactive): A clickable flow diagram replacing Mermaid, explaining the "Input -> Analysis -> Interview -> Review" loop.
+         5. Feature Demo (Simulation): An interactive "Chat" simulation demonstrating the "VAD Intervention" and "Persona" features.
+         6. Roadmap & Future: Simple timeline.
+         This structure moves from "Why" (Data) to "Who" (Personas) to "How" (Workflow/Demo), ensuring logical comprehension.
+    -->
+    <!-- Visualization & Content Choices:
+         - Pie Chart: User Composition (Clear part-to-whole comparison).
+         - Bar Chart: Stress Sources & AI Attractions (Comparison of magnitudes).
+         - Interactive Flow: Replaces static diagrams to allow users to drill down into the logic (OCR, RAG, LLM) without clutter.
+         - Chat Simulation: Direct experience of the "Intervention" feature described in the PRD.
+         - No SVG/Mermaid: Used Chart.js and HTML/CSS shapes.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased selection:bg-blue-100 selection:text-blue-900">
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-2xl font-bold text-blue-600">ProView</span>
+                        <span class="ml-2 text-sm font-medium text-gray-500 tracking-wider uppercase border-l pl-2 border-gray-300">AI Interviewer</span>
+                    </div>
+                </div>
+                <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                    <a href="#market-data" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">市场洞察</a>
+                    <a href="#user-pain-points" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">用户痛点</a>
+                    <a href="#core-workflow" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">核心工作流</a>
+                    <a href="#feature-demo" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">全真模拟</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="relative bg-white overflow-hidden">
+        <div class="max-w-7xl mx-auto">
+            <div class="relative z-10 pb-8 bg-white sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
+                <main class="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
+                    <div class="sm:text-center lg:text-left">
+                        <h1 class="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
+                            <span class="block xl:inline">拒绝临场认知冻结</span>
+                            <span class="block text-blue-600 xl:inline">高压生存训练 Agent</span>
+                        </h1>
+                        <p class="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
+                            不仅仅是问答机器，更是一个懂技术、极敏锐的资深AI面试官。针对简历注水、逻辑漏洞进行深度“脱敏训练”。
+                        </p>
+                        <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
+                            <div class="rounded-md shadow">
+                                <a href="#core-workflow" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 md:py-4 md:text-lg md:px-10 transition duration-150 ease-in-out">
+                                    查看工作原理
+                                </a>
+                            </div>
+                            <div class="mt-3 sm:mt-0 sm:ml-3">
+                                <a href="#market-data" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 md:py-4 md:text-lg md:px-10 transition duration-150 ease-in-out">
+                                    查看调研数据
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+        <div class="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2 bg-gray-50 flex items-center justify-center">
+             <!-- Abstract Graphic representation using CSS/HTML -->
+            <div class="w-full h-full flex items-center justify-center p-10">
+                <div class="grid grid-cols-2 gap-4 opacity-80">
+                    <div class="p-6 bg-white rounded-xl shadow-lg transform rotate-3 flex flex-col items-center justify-center h-40 w-40">
+                        <span class="text-4xl">📄</span>
+                        <span class="mt-2 text-sm font-bold text-gray-600">简历解析</span>
+                    </div>
+                    <div class="p-6 bg-blue-600 rounded-xl shadow-lg transform -rotate-3 flex flex-col items-center justify-center h-40 w-40 text-white">
+                        <span class="text-4xl">🤖</span>
+                        <span class="mt-2 text-sm font-bold">AI 追问</span>
+                    </div>
+                    <div class="p-6 bg-amber-500 rounded-xl shadow-lg transform -rotate-2 flex flex-col items-center justify-center h-40 w-40 text-white">
+                        <span class="text-4xl">🆘</span>
+                        <span class="mt-2 text-sm font-bold">柔性急救</span>
+                    </div>
+                    <div class="p-6 bg-white rounded-xl shadow-lg transform rotate-2 flex flex-col items-center justify-center h-40 w-40">
+                        <span class="text-4xl">📊</span>
+                        <span class="mt-2 text-sm font-bold text-gray-600">深度复盘</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Market Data Dashboard -->
+    <section id="market-data" class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">需求背景</h2>
+                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+                    为什么我们需要 ProView?
+                </p>
+                <p class="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
+                    基于38份针对工科学生的深度调研，揭示了求职、考研与答辩场景下的真实痛点与付费意愿。
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <!-- User Composition Chart -->
+                <div class="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <span class="bg-blue-100 text-blue-800 p-1 rounded mr-2 text-xs">群体</span>
+                        核心用户画像分布
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="userTypeChart"></canvas>
+                    </div>
+                    <p class="mt-4 text-sm text-gray-500 text-center">
+                        找工作群体占比最高 (63.16%)，其次是考研 (21.05%)。
+                    </p>
+                </div>
+
+                <!-- Stress Source Chart -->
+                <div class="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-800 flex items-center">
+                            <span class="bg-red-100 text-red-800 p-1 rounded mr-2 text-xs">痛点</span>
+                            压力来源分析
+                        </h3>
+                        <select id="stressFilter" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-1">
+                            <option value="job">求职者</option>
+                            <option value="postgrad">考研复试</option>
+                            <option value="defense">比赛答辩</option>
+                        </select>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="stressChart"></canvas>
+                    </div>
+                    <p class="mt-4 text-sm text-gray-500 text-center" id="stressDesc">
+                        求职者最大的恐惧是对“八股文”及开放性深挖问题的空白 (70.83%)。
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <!-- AI Attraction -->
+                 <div class="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">相比真人学长，AI 的优势</h3>
+                    <div class="chart-container">
+                        <canvas id="attractionChart"></canvas>
+                    </div>
+                    <p class="mt-4 text-sm text-gray-500 text-center">
+                        "覆盖面广" (87.5%) 和 "随时随地" (83.33%) 是 AI 面试官的核心竞争力。
+                    </p>
+                </div>
+
+                <!-- Intervention Preference -->
+                <div class="bg-gray-50 rounded-xl p-6 shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">当面试卡壳时，用户希望...</h3>
+                    <ul class="space-y-4">
+                        <li class="relative">
+                            <div class="flex items-center justify-between text-sm font-medium text-gray-700 mb-1">
+                                <span>引导式提示 (Give me a keyword)</span>
+                                <span>76.32%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: 76.32%"></div>
+                            </div>
+                        </li>
+                        <li class="relative">
+                            <div class="flex items-center justify-between text-sm font-medium text-gray-700 mb-1">
+                                <span>事后复盘 (Analysis after finish)</span>
+                                <span>73.68%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-green-500 h-2.5 rounded-full" style="width: 73.68%"></div>
+                            </div>
+                        </li>
+                        <li class="relative">
+                            <div class="flex items-center justify-between text-sm font-medium text-gray-700 mb-1">
+                                <span>提供“急救包” (Delay tactics)</span>
+                                <span>63.16%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-amber-400 h-2.5 rounded-full" style="width: 63.16%"></div>
+                            </div>
+                        </li>
+                        <li class="relative opacity-60">
+                            <div class="flex items-center justify-between text-sm font-medium text-gray-700 mb-1">
+                                <span>立即打断纠正 (Immediate correction)</span>
+                                <span>44.74%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-red-400 h-2.5 rounded-full" style="width: 44.74%"></div>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="mt-6 p-3 bg-blue-50 border-l-4 border-blue-500 text-xs text-blue-700">
+                        <strong>设计洞察：</strong> 用户排斥强制打断。系统应构建“柔性干预机制”，将干预控制权交还给用户（如自定义是否开启“引导模式”）。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- User Pain Points & Persona Section -->
+    <section id="user-pain-points" class="py-12 bg-gray-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">用户画像</h2>
+                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+                    三大核心场景解决方案
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Job Seeker -->
+                <div class="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden group cursor-pointer" onclick="togglePersonaDetails('job')">
+                    <div class="h-2 bg-blue-500"></div>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-3xl">💼</span>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-bold">63.16%</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900">求职者</h3>
+                        <p class="text-gray-500 text-sm mt-2">计算机、自动化等工科学生</p>
+                        <div class="mt-4 space-y-2">
+                            <div class="flex items-start">
+                                <span class="text-red-500 mr-2">⚠️</span>
+                                <p class="text-sm text-gray-600">简历注水怕被深挖</p>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="text-red-500 mr-2">⚠️</span>
+                                <p class="text-sm text-gray-600">八股文临场卡壳</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 p-4 border-t group-hover:bg-blue-50 transition-colors">
+                        <p class="text-blue-600 text-sm font-semibold flex items-center justify-center">
+                            查看 ProView 方案 <span class="ml-1">↓</span>
+                        </p>
+                    </div>
+                    <!-- Hidden Details -->
+                    <div id="details-job" class="hidden p-6 bg-blue-50 border-t border-blue-100">
+                        <h4 class="font-bold text-blue-900 mb-2">ProView 解决方案：</h4>
+                        <ul class="list-disc list-inside text-sm text-blue-800 space-y-1">
+                            <li><strong>简历脱敏：</strong>OCR扫描提取，DeepSeek 自动识别“过度包装”点并进行针对性追问。</li>
+                            <li><strong>超级面经库：</strong>RAG 检索全网近5年真题，命中率极高。</li>
+                            <li><strong>万能急救包：</strong>卡壳时提供高情商拖延话术。</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Postgrad -->
+                <div class="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden group cursor-pointer" onclick="togglePersonaDetails('postgrad')">
+                    <div class="h-2 bg-purple-500"></div>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-3xl">🎓</span>
+                            <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-bold">21.05%</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900">考研复试</h3>
+                        <p class="text-gray-500 text-sm mt-2">备考研究生的大三/大四学生</p>
+                        <div class="mt-4 space-y-2">
+                            <div class="flex items-start">
+                                <span class="text-red-500 mr-2">⚠️</span>
+                                <p class="text-sm text-gray-600">冷门/跨学科问题盲区</p>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="text-red-500 mr-2">⚠️</span>
+                                <p class="text-sm text-gray-600">英语口语/听力薄弱</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 p-4 border-t group-hover:bg-purple-50 transition-colors">
+                        <p class="text-purple-600 text-sm font-semibold flex items-center justify-center">
+                            查看 ProView 方案 <span class="ml-1">↓</span>
+                        </p>
+                    </div>
+                    <!-- Hidden Details -->
+                    <div id="details-postgrad" class="hidden p-6 bg-purple-50 border-t border-purple-100">
+                        <h4 class="font-bold text-purple-900 mb-2">ProView 解决方案：</h4>
+                        <ul class="list-disc list-inside text-sm text-purple-800 space-y-1">
+                            <li><strong>专业盲区扫描：</strong>RAG 挂载导师论文库与冷门知识库。</li>
+                            <li><strong>压力面模拟：</strong>针对低GPA/无科研经历进行“死亡追问”。</li>
+                            <li><strong>双语对练：</strong>包含英语口语测试环节。</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Defense -->
+                <div class="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden group cursor-pointer" onclick="togglePersonaDetails('defense')">
+                    <div class="h-2 bg-amber-500"></div>
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-3xl">🏆</span>
+                            <span class="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full font-bold">15.79%</span>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900">比赛答辩</h3>
+                        <p class="text-gray-500 text-sm mt-2">项目负责人/团队成员</p>
+                        <div class="mt-4 space-y-2">
+                            <div class="flex items-start">
+                                <span class="text-red-500 mr-2">⚠️</span>
+                                <p class="text-sm text-gray-600">评委提问太宏观/听不懂</p>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="text-red-500 mr-2">⚠️</span>
+                                <p class="text-sm text-gray-600">项目被质疑“注水”</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 p-4 border-t group-hover:bg-amber-50 transition-colors">
+                        <p class="text-amber-600 text-sm font-semibold flex items-center justify-center">
+                            查看 ProView 方案 <span class="ml-1">↓</span>
+                        </p>
+                    </div>
+                     <!-- Hidden Details -->
+                     <div id="details-defense" class="hidden p-6 bg-amber-50 border-t border-amber-100">
+                        <h4 class="font-bold text-amber-900 mb-2">ProView 解决方案：</h4>
+                        <ul class="list-disc list-inside text-sm text-amber-800 space-y-1">
+                            <li><strong>多变人设：</strong>模拟“小白评委”（降维解释）与“技术极客”（代码深挖）。</li>
+                            <li><strong>逻辑防守：</strong>针对项目逻辑漏洞生成防御话术。</li>
+                            <li><strong>PPT 逐字稿优化：</strong>提升表达专业度。</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Workflow Section (Interactive) -->
+    <section id="core-workflow" class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-10 text-center">
+                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">核心工作流</h2>
+                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+                    Agent 如何进行“生存训练”？
+                </p>
+                <p class="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
+                    点击下方节点，查看 ProView 内部运转逻辑。基于 LLM、RAG 与 OCR 技术的深度融合。
+                </p>
+            </div>
+
+            <!-- Interactive Flow Component -->
+            <div class="flex flex-col md:flex-row items-start justify-between gap-8">
+                
+                <!-- Diagram Side -->
+                <div class="w-full md:w-1/2 space-y-6">
+                    <!-- Step 1 -->
+                    <div onclick="showStep('input')" class="workflow-step cursor-pointer group flex items-center p-4 rounded-lg border-2 border-blue-100 hover:border-blue-500 hover:bg-blue-50 transition-all bg-white relative">
+                        <div class="flex-shrink-0 h-12 w-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">1</div>
+                        <div class="ml-4">
+                            <h4 class="text-lg font-bold text-gray-900">输入与解析</h4>
+                            <p class="text-sm text-gray-500">上传 PDF 简历 / 设定岗位</p>
+                        </div>
+                        <div class="absolute right-4 text-gray-300 group-hover:text-blue-500">➜</div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div onclick="showStep('analysis')" class="workflow-step cursor-pointer group flex items-center p-4 rounded-lg border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all bg-white relative">
+                        <div class="flex-shrink-0 h-12 w-12 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">2</div>
+                        <div class="ml-4">
+                            <h4 class="text-lg font-bold text-gray-900">洞察与策略生成</h4>
+                            <p class="text-sm text-gray-500">OCR提取 + RAG检索 + 疑点挖掘</p>
+                        </div>
+                        <div class="absolute right-4 text-gray-300 group-hover:text-blue-500">➜</div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div onclick="showStep('interview')" class="workflow-step cursor-pointer group flex items-center p-4 rounded-lg border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all bg-white relative">
+                        <div class="flex-shrink-0 h-12 w-12 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">3</div>
+                        <div class="ml-4">
+                            <h4 class="text-lg font-bold text-gray-900">AI 模拟面试</h4>
+                            <p class="text-sm text-gray-500">语音对弈 + VAD柔性干预</p>
+                        </div>
+                        <div class="absolute right-4 text-gray-300 group-hover:text-blue-500">➜</div>
+                    </div>
+
+                    <!-- Step 4 -->
+                    <div onclick="showStep('review')" class="workflow-step cursor-pointer group flex items-center p-4 rounded-lg border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all bg-white relative">
+                        <div class="flex-shrink-0 h-12 w-12 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">4</div>
+                        <div class="ml-4">
+                            <h4 class="text-lg font-bold text-gray-900">复盘与交付</h4>
+                            <p class="text-sm text-gray-500">多维报告 + 救急包 + 简历修改</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Details Panel Side -->
+                <div class="w-full md:w-1/2">
+                    <div class="bg-gray-900 text-white rounded-xl p-8 shadow-2xl h-full min-h-[400px] flex flex-col justify-center relative overflow-hidden">
+                        <!-- Background Decoration -->
+                        <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-blue-900 opacity-20"></div>
+                        
+                        <!-- Content Area -->
+                        <div id="workflow-content">
+                            <!-- Default Content (Step 1) -->
+                            <div class="animate-fade-in">
+                                <span class="inline-block px-3 py-1 bg-blue-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：输入</span>
+                                <h3 class="text-2xl font-bold mb-4">输入解析与弱点洞察</h3>
+                                <p class="text-gray-300 mb-6">这是初始化的关键步骤。Agent 必须先了解你，才能“攻击”你。</p>
+                                <div class="space-y-4">
+                                    <div class="flex items-start">
+                                        <div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">1</div>
+                                        <div>
+                                            <p class="font-bold">PaddleOCR 引擎</p>
+                                            <p class="text-xs text-gray-400">精准扫描 PDF 简历，将非结构化文档转为文本数据。</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start">
+                                        <div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">2</div>
+                                        <div>
+                                            <p class="font-bold">DeepSeek 弱点扫描</p>
+                                            <p class="text-xs text-gray-400">大模型寻找逻辑漏洞（如：实习时间短但项目过大）和注水嫌疑点。</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start">
+                                        <div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">3</div>
+                                        <div>
+                                            <p class="font-bold">场景配置</p>
+                                            <p class="text-xs text-gray-400">用户选择人设（严厉/温柔）及是否开启“卡壳急救”。</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Feature Demo: Simulation -->
+    <section id="feature-demo" class="py-16 bg-blue-50">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-8">
+                <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">全真模拟演示</h2>
+                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900">
+                    体验“柔性干预”机制
+                </p>
+                <p class="mt-4 text-gray-600">
+                    在面试卡壳超过5秒时，Agent 会根据你的设置决定是“冷眼旁观”还是“递上急救包”。
+                </p>
+            </div>
+
+            <!-- Simulation UI -->
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200 flex flex-col h-[600px]">
+                <!-- Chat Header -->
+                <div class="bg-white border-b p-4 flex justify-between items-center shadow-sm z-10">
+                    <div class="flex items-center">
+                        <div class="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl">🤖</div>
+                        <div class="ml-3">
+                            <h3 class="font-bold text-gray-800">ProView AI 面试官</h3>
+                            <p class="text-xs text-green-500 flex items-center">● 在线 | 模式: <span id="current-mode-text" class="font-bold ml-1">严厉 & 引导开启</span></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <label class="flex items-center text-xs text-gray-600">
+                            <span class="mr-2">引导模式:</span>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="mode-toggle" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300 checked:right-0 checked:border-blue-600"/>
+                                <label for="mode-toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                        </label>
+                        <button onclick="resetChat()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1 rounded">重置</button>
+                    </div>
+                </div>
+
+                <!-- Chat Body -->
+                <div id="chat-box" class="flex-1 bg-gray-50 p-6 overflow-y-auto chat-scroll space-y-4">
+                    <!-- System Msg -->
+                    <div class="flex justify-center">
+                        <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">面试已开始，正在录音...</span>
+                    </div>
+
+                    <!-- AI Msg -->
+                    <div class="flex items-start">
+                        <div class="h-8 w-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-xs">AI</div>
+                        <div class="ml-3 bg-white p-3 rounded-r-xl rounded-bl-xl shadow-sm text-sm text-gray-800 border border-gray-100 max-w-[80%]">
+                            我看了你的简历，你提到负责了高并发系统的重构。请具体说一下，你是用什么指标来衡量重构效果的？优化前后的QPS对比数据是多少？
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Chat Controls -->
+                <div class="p-4 bg-white border-t">
+                    <div class="flex items-center justify-between mb-2">
+                        <div id="status-indicator" class="text-xs font-bold text-gray-500 flex items-center">
+                            <span class="w-2 h-2 rounded-full bg-gray-400 mr-2"></span> 等待用户回答...
+                        </div>
+                        <div id="timer" class="text-xs text-red-500 font-mono hidden">沉默时长: 0.0s</div>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button onclick="startUserResponse()" id="btn-speak" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold transition-all flex items-center justify-center">
+                            🎤 模拟回答 (点击开始)
+                        </button>
+                        <button onclick="simulateSilence()" id="btn-silence" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-lg font-bold transition-all flex items-center justify-center border-b-4 border-amber-700 active:border-b-0 active:translate-y-1">
+                            😶 模拟卡壳 (沉默)
+                        </button>
+                    </div>
+                    <p class="text-xs text-center text-gray-400 mt-2">提示：点击“模拟卡壳”来触发系统的VAD干预机制</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-400 text-sm">© 2026 ProView AI. High-Pressure Survival Training.</p>
+            <p class="text-gray-500 text-xs mt-2">版本: V1.0 | 创建日期: 2026年2月22</p>
+        </div>
+    </footer>
+
+    <!-- Style for Toggle Switch -->
+    <style>
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #2563EB;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #2563EB;
+        }
+    </style>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Data & Charts ---
+        
+        // Data derived from the Source Report tables
+        const surveyData = {
+            users: {
+                labels: ['找工作', '考研研究生', '准备项目答辩'],
+                data: [63.16, 21.05, 15.79],
+                colors: ['#3B82F6', '#8B5CF6', '#F59E0B']
+            },
+            stress: {
+                job: {
+                    labels: ['紧张卡壳', '简历注水怕深挖', '八股文/空白', '无反馈'],
+                    data: [54.17, 70.83, 70.83, 45.83]
+                },
+                postgrad: {
+                    labels: ['英语口语薄弱', '冷门知识盲区', '履历弱点压力面', '临场心态崩盘'],
+                    data: [62.5, 75, 62.5, 62.5]
+                },
+                defense: {
+                    labels: ['项目被识破注水', '评委提问太宏观', '无法应对挑刺', 'PPT演讲解说'],
+                    data: [83.33, 100, 50, 50] // Approximate based on mixed data in doc
+                }
+            },
+            attraction: {
+                labels: ['更狠更刁钻', '覆盖面广(近5年真题)', '随时随地', '隐私保护'],
+                data: [58.33, 87.5, 83.33, 54.17]
+            }
+        };
+
+        // Initialize Charts on Load
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            setupInteractions();
+        });
+
+        let stressChartInstance = null;
+
+        function initCharts() {
+            // 1. User Type Chart (Doughnut)
+            const ctxUser = document.getElementById('userTypeChart').getContext('2d');
+            new Chart(ctxUser, {
+                type: 'doughnut',
+                data: {
+                    labels: surveyData.users.labels,
+                    datasets: [{
+                        data: surveyData.users.data,
+                        backgroundColor: surveyData.users.colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+
+            // 2. Stress Source Chart (Bar) - Dynamic
+            const ctxStress = document.getElementById('stressChart').getContext('2d');
+            stressChartInstance = new Chart(ctxStress, {
+                type: 'bar',
+                data: {
+                    labels: surveyData.stress.job.labels,
+                    datasets: [{
+                        label: '压力占比 (%)',
+                        data: surveyData.stress.job.data,
+                        backgroundColor: '#3B82F6',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 100 }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // 3. Attraction Chart (Horizontal Bar)
+            const ctxAttract = document.getElementById('attractionChart').getContext('2d');
+            new Chart(ctxAttract, {
+                type: 'bar',
+                indexAxis: 'y',
+                data: {
+                    labels: surveyData.attraction.labels,
+                    datasets: [{
+                        label: '吸引力 (%)',
+                        data: surveyData.attraction.data,
+                        backgroundColor: '#10B981', // Emerald
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { beginAtZero: true, max: 100 }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function setupInteractions() {
+            // Stress Chart Filter
+            document.getElementById('stressFilter').addEventListener('change', (e) => {
+                const type = e.target.value;
+                const newData = surveyData.stress[type];
+                
+                stressChartInstance.data.labels = newData.labels;
+                stressChartInstance.data.datasets[0].data = newData.data;
+                
+                // Update Color based on type
+                const colors = { 'job': '#3B82F6', 'postgrad': '#8B5CF6', 'defense': '#F59E0B' };
+                stressChartInstance.data.datasets[0].backgroundColor = colors[type];
+                
+                // Update Text
+                const desc = {
+                    'job': '求职者最大的恐惧是对“八股文”及开放性深挖问题的空白 (70.83%)。',
+                    'postgrad': '考研党最怕问到冷门知识点导致大脑一片空白 (75%)。',
+                    'defense': '答辩选手最担心评委提问太宏观超出认知 (100%)。'
+                };
+                document.getElementById('stressDesc').innerText = desc[type];
+
+                stressChartInstance.update();
+            });
+        }
+
+        // --- Persona Toggle Logic ---
+        function togglePersonaDetails(id) {
+            const el = document.getElementById(`details-${id}`);
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                el.classList.add('hidden');
+            }
+        }
+
+        // --- Interactive Workflow Logic ---
+        const workflowContents = {
+            'input': `
+                <div class="animate-fade-in">
+                    <span class="inline-block px-3 py-1 bg-blue-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：输入</span>
+                    <h3 class="text-2xl font-bold mb-4">输入解析与弱点洞察</h3>
+                    <p class="text-gray-300 mb-6">这是初始化的关键步骤。Agent 必须先了解你，才能“攻击”你。</p>
+                    <div class="space-y-4">
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">PaddleOCR 引擎</p><p class="text-xs text-gray-400">精准扫描 PDF 简历，将非结构化文档转为文本数据。</p></div></div>
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">DeepSeek 弱点扫描</p><p class="text-xs text-gray-400">大模型寻找逻辑漏洞（如：实习时间短但项目过大）和注水嫌疑点。</p></div></div>
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">场景配置</p><p class="text-xs text-gray-400">用户选择人设（严厉/温柔）及是否开启“卡壳急救”。</p></div></div>
+                    </div>
+                </div>`,
+            'analysis': `
+                <div class="animate-fade-in">
+                    <span class="inline-block px-3 py-1 bg-purple-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：策略</span>
+                    <h3 class="text-2xl font-bold mb-4">RAG 检索与策略生成</h3>
+                    <p class="text-gray-300 mb-6">不打无准备之仗。Agent 利用 RAG 技术构建“超级面经库”。</p>
+                    <div class="space-y-4">
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-purple-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">超级面经库 (RAG)</p><p class="text-xs text-gray-400">检索目标岗位/院校近 5 年的高频真题与核心考察点。</p></div></div>
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-purple-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">Prompt 动态注入</p><p class="text-xs text-gray-400">加载"严厉面试官"或"慈祥导师"的 System Prompt，设定打断概率。</p></div></div>
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-purple-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">初始化面试大纲</p><p class="text-xs text-gray-400">生成一份包含基础题、深挖题和压力测试题的动态脚本。</p></div></div>
+                    </div>
+                </div>`,
+            'interview': `
+                <div class="animate-fade-in">
+                    <span class="inline-block px-3 py-1 bg-amber-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：对弈</span>
+                    <h3 class="text-2xl font-bold mb-4">全真模拟与柔性干预</h3>
+                    <p class="text-gray-300 mb-6">核心壁垒。VAD 实时监测，区分“思考”与“卡壳”。</p>
+                    <div class="space-y-4">
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-amber-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">火山 TTS/Paraformer</p><p class="text-xs text-gray-400">极低延迟的语音合成与识别，还原真实对话节奏。</p></div></div>
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-amber-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">VAD 状态检测</p><p class="text-xs text-gray-400">监测沉默时长。若 >5秒 且开启引导模式，触发救援。</p></div></div>
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-amber-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">实时追问</p><p class="text-xs text-gray-400">若回答有逻辑漏洞，LLM 立即生成追问，进行极限施压。</p></div></div>
+                    </div>
+                </div>`,
+            'review': `
+                <div class="animate-fade-in">
+                    <span class="inline-block px-3 py-1 bg-green-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：交付</span>
+                    <h3 class="text-2xl font-bold mb-4">多维复盘报告</h3>
+                    <p class="text-gray-300 mb-6">面试结束不是终点。数据化你的表现，提供可执行的改进方案。</p>
+                    <div class="space-y-4">
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-green-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">简历修改建议</p><p class="text-xs text-gray-400">基于刚才的“被怼”经历，指出简历哪里写得太假。</p></div></div>
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-green-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">八股文救急包</p><p class="text-xs text-gray-400">针对答不上的知识点，生成标准的背诵清单与高情商话术。</p></div></div>
+                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-green-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">表现雷达图</p><p class="text-xs text-gray-400">分析逻辑连贯性、情绪稳定性、表达流畅度。</p></div></div>
+                    </div>
+                </div>`
+        };
+
+        function showStep(stepKey) {
+            // Update UI styles for steps
+            document.querySelectorAll('.workflow-step').forEach(el => {
+                el.classList.remove('border-blue-500', 'bg-blue-50');
+                el.classList.add('border-gray-100');
+            });
+            // Highlight clicked (simple approximation, in real app use IDs)
+            event.currentTarget.classList.remove('border-gray-100');
+            event.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
+
+            // Update Content
+            const container = document.getElementById('workflow-content');
+            container.innerHTML = workflowContents[stepKey];
+        }
+
+        // --- Chat Simulation Logic ---
+        let chatState = {
+            timer: 0,
+            interval: null,
+            isRecording: false,
+            isSilence: false
+        };
+
+        function resetChat() {
+            clearInterval(chatState.interval);
+            chatState = { timer: 0, interval: null, isRecording: false, isSilence: false };
+            document.getElementById('chat-box').innerHTML = `
+                <div class="flex justify-center"><span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">面试已开始，正在录音...</span></div>
+                <div class="flex items-start">
+                    <div class="h-8 w-8 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white text-xs">AI</div>
+                    <div class="ml-3 bg-white p-3 rounded-r-xl rounded-bl-xl shadow-sm text-sm text-gray-800 border border-gray-100 max-w-[80%]">
+                        我看了你的简历，你提到负责了高并发系统的重构。请具体说一下，你是用什么指标来衡量重构效果的？优化前后的QPS对比数据是多少？
+                    </div>
+                </div>`;
+            updateStatus('等待用户回答...', 'gray');
+            document.getElementById('timer').classList.add('hidden');
+        }
+
+        function updateStatus(text, color) {
+            const el = document.getElementById('status-indicator');
+            const colorClass = color === 'red' ? 'bg-red-500 animate-pulse' : (color === 'green' ? 'bg-green-500' : 'bg-gray-400');
+            el.innerHTML = `<span class="w-2 h-2 rounded-full ${colorClass} mr-2"></span> ${text}`;
+        }
+
+        function appendMessage(sender, text, type = 'normal') {
+            const box = document.getElementById('chat-box');
+            let html = '';
+            if (sender === 'user') {
+                html = `
+                <div class="flex items-end justify-end">
+                    <div class="mr-3 bg-blue-600 p-3 rounded-l-xl rounded-tr-xl shadow-sm text-sm text-white max-w-[80%]">
+                        ${text}
+                    </div>
+                    <div class="h-8 w-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-600 text-xs">You</div>
+                </div>`;
+            } else if (sender === 'ai') {
+                const style = type === 'rescue' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-white border-gray-100 text-gray-800';
+                const icon = type === 'rescue' ? '🆘' : 'AI';
+                const bgIcon = type === 'rescue' ? 'bg-amber-500' : 'bg-blue-600';
+                
+                html = `
+                <div class="flex items-start animate-fade-in">
+                    <div class="h-8 w-8 rounded-full ${bgIcon} flex-shrink-0 flex items-center justify-center text-white text-xs">${icon}</div>
+                    <div class="ml-3 ${style} p-3 rounded-r-xl rounded-bl-xl shadow-sm text-sm border max-w-[80%]">
+                        ${text}
+                    </div>
+                </div>`;
+            }
+            box.insertAdjacentHTML('beforeend', html);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function startUserResponse() {
+            clearInterval(chatState.interval);
+            document.getElementById('timer').classList.add('hidden');
+            updateStatus('用户正在回答...', 'green');
+            
+            setTimeout(() => {
+                appendMessage('user', '额...这个指标的话...主要是看那个...系统的响应速度...');
+                updateStatus('AI 正在分析...', 'blue');
+                setTimeout(() => {
+                    appendMessage('ai', '这就太笼统了。“响应速度”具体是指TP99还是平均响应时间？具体数值提升了多少毫秒？如果是高并发，CPU利用率的变化呢？');
+                    updateStatus('等待用户回答...', 'gray');
+                }, 1500);
+            }, 800);
+        }
+
+        function simulateSilence() {
+            const guideEnabled = document.getElementById('mode-toggle').checked;
+            
+            clearInterval(chatState.interval);
+            chatState.timer = 0;
+            updateStatus('检测到沉默...', 'red');
+            document.getElementById('timer').classList.remove('hidden');
+            
+            chatState.interval = setInterval(() => {
+                chatState.timer += 0.1;
+                document.getElementById('timer').innerText = `沉默时长: ${chatState.timer.toFixed(1)}s`;
+                
+                if (chatState.timer > 5.0) {
+                    clearInterval(chatState.interval);
+                    if (guideEnabled) {
+                        triggerRescue();
+                    } else {
+                        // Strict mode behavior
+                        appendMessage('ai', '（冷场记录+1）如果这个问题答不上来，我们可以换下一个。但这也说明你对该项目的核心数据掌握不足。', 'normal');
+                        updateStatus('AI 记录扣分...', 'gray');
+                        document.getElementById('timer').classList.add('hidden');
+                    }
+                }
+            }, 100);
+        }
+
+        function triggerRescue() {
+            updateStatus('触发柔性干预机制', 'amber');
+            // Simulation of "Guide/First Aid"
+            setTimeout(() => {
+                appendMessage('ai', '<strong>[系统提示]</strong> 别紧张。如果你不记得具体数据，可以试着从“系统吞吐量”或“资源利用率”的角度大致描述一下优化前后的瓶颈差异。', 'rescue');
+                document.getElementById('timer').classList.add('hidden');
+                updateStatus('等待用户继续...', 'gray');
+            }, 500);
+        }
+
+        document.getElementById('mode-toggle').addEventListener('change', (e) => {
+            const status = e.target.checked ? "严厉 & 引导开启" : "严厉 & 引导关闭";
+            document.getElementById('current-mode-text').innerText = status;
+        });
+
+    </script>
+</body>
+</html>
