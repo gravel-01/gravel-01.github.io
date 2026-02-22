@@ -31,7 +31,7 @@
             background-color: #F3F4F6; /* Cool Gray 100 - Neutral Background */
             color: #1F2937; /* Gray 800 */
         }
-        /* Chart Container Styling - Mandatory per requirements */
+        /* Chart Container Styling */
         .chart-container {
             position: relative;
             width: 100%;
@@ -46,55 +46,29 @@
                 height: 380px;
             }
         }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(229, 231, 235, 0.5);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        .active-tab {
-            border-bottom: 2px solid #3B82F6;
-            color: #3B82F6;
-            font-weight: 600;
-        }
-        .inactive-tab {
-            color: #6B7280;
-            border-bottom: 2px solid transparent;
-        }
-        .inactive-tab:hover {
-            color: #374151;
-        }
-        /* Custom scrollbar for chat demo */
-        .chat-scroll::-webkit-scrollbar {
-            width: 6px;
-        }
-        .chat-scroll::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        .chat-scroll::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        
-        /* --- Mock Interview App Styles --- */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Custom scrollbars */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
         /* 脉冲动画（模拟AI说话） */
         @keyframes pulse-ring {
             0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(79, 70, 229, 0); }
+            70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(79, 70, 229, 0); }
             100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
         }
         .ai-speaking { animation: pulse-ring 2s infinite; }
         
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Toggle Switch Styles */
+        .toggle-checkbox:checked { right: 0; border-color: #4F46E5; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #4F46E5; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 antialiased selection:bg-blue-100 selection:text-blue-900">
+<body class="bg-gray-50 text-gray-800 antialiased selection:bg-blue-100 selection:text-blue-900 custom-scroll">
 
     <!-- Navigation -->
     <nav class="bg-white shadow-sm sticky top-0 z-50">
@@ -107,10 +81,10 @@
                     </div>
                 </div>
                 <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                    <a href="#market-data" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">市场洞察</a>
-                    <a href="#user-pain-points" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">用户痛点</a>
-                    <a href="#core-workflow" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">核心工作流</a>
-                    <a href="#mock-interview-app-section" class="border-transparent text-primary hover:border-primary hover:text-primary inline-flex items-center px-1 pt-1 border-b-2 text-sm font-bold">真实体验 <i class="fa-solid fa-bolt ml-1"></i></a>
+                    <a href="#market-data" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">市场洞察</a>
+                    <a href="#user-pain-points" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">用户痛点</a>
+                    <a href="#core-workflow" class="border-transparent text-gray-500 hover:border-blue-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors">核心工作流</a>
+                    <a href="#mock-interview-app-section" class="border-transparent text-primary hover:border-primary hover:text-primary inline-flex items-center px-1 pt-1 border-b-2 text-sm font-bold transition-colors">真实体验 <i class="fa-solid fa-bolt ml-1"></i></a>
                 </div>
             </div>
         </div>
@@ -146,7 +120,6 @@
             </div>
         </div>
         <div class="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2 bg-gray-50 flex items-center justify-center">
-             <!-- Abstract Graphic representation using CSS/HTML -->
             <div class="w-full h-full flex items-center justify-center p-10">
                 <div class="grid grid-cols-2 gap-4 opacity-80">
                     <div class="p-6 bg-white rounded-xl shadow-lg transform rotate-3 flex flex-col items-center justify-center h-40 w-40">
@@ -171,7 +144,7 @@
     </div>
 
     <!-- Market Data Dashboard -->
-    <section id="market-data" class="py-12 bg-white">
+    <section id="market-data" class="py-12 bg-white border-t border-gray-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-base text-blue-600 font-semibold tracking-wide uppercase">需求背景</h2>
@@ -205,7 +178,7 @@
                             <span class="bg-red-100 text-red-800 p-1 rounded mr-2 text-xs">痛点</span>
                             压力来源分析
                         </h3>
-                        <select id="stressFilter" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-1">
+                        <select id="stressFilter" class="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 p-1 outline-none">
                             <option value="job">求职者</option>
                             <option value="postgrad">考研复试</option>
                             <option value="defense">比赛答辩</option>
@@ -273,7 +246,7 @@
                             </div>
                         </li>
                     </ul>
-                    <div class="mt-6 p-3 bg-blue-50 border-l-4 border-blue-500 text-xs text-blue-700">
+                    <div class="mt-6 p-3 bg-blue-50 border-l-4 border-blue-500 text-xs text-blue-700 rounded-lg">
                         <strong>设计洞察：</strong> 用户排斥强制打断。系统应构建“柔性干预机制”，将干预控制权交还给用户（如自定义是否开启“引导模式”）。
                     </div>
                 </div>
@@ -318,7 +291,6 @@
                             查看 ProView 方案 <span class="ml-1">↓</span>
                         </p>
                     </div>
-                    <!-- Hidden Details -->
                     <div id="details-job" class="hidden p-6 bg-blue-50 border-t border-blue-100">
                         <h4 class="font-bold text-blue-900 mb-2">ProView 解决方案：</h4>
                         <ul class="list-disc list-inside text-sm text-blue-800 space-y-1">
@@ -355,7 +327,6 @@
                             查看 ProView 方案 <span class="ml-1">↓</span>
                         </p>
                     </div>
-                    <!-- Hidden Details -->
                     <div id="details-postgrad" class="hidden p-6 bg-purple-50 border-t border-purple-100">
                         <h4 class="font-bold text-purple-900 mb-2">ProView 解决方案：</h4>
                         <ul class="list-disc list-inside text-sm text-purple-800 space-y-1">
@@ -392,7 +363,6 @@
                             查看 ProView 方案 <span class="ml-1">↓</span>
                         </p>
                     </div>
-                     <!-- Hidden Details -->
                      <div id="details-defense" class="hidden p-6 bg-amber-50 border-t border-amber-100">
                         <h4 class="font-bold text-amber-900 mb-2">ProView 解决方案：</h4>
                         <ul class="list-disc list-inside text-sm text-amber-800 space-y-1">
@@ -406,7 +376,7 @@
         </div>
     </section>
 
-    <!-- Core Workflow Section (Interactive) -->
+    <!-- Core Workflow Section -->
     <section id="core-workflow" class="py-12 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="mb-10 text-center">
@@ -419,13 +389,10 @@
                 </p>
             </div>
 
-            <!-- Interactive Flow Component -->
             <div class="flex flex-col md:flex-row items-start justify-between gap-8">
-                
                 <!-- Diagram Side -->
                 <div class="w-full md:w-1/2 space-y-6">
-                    <!-- Step 1 -->
-                    <div onclick="showStep('input')" class="workflow-step cursor-pointer group flex items-center p-4 rounded-lg border-2 border-blue-100 hover:border-blue-500 hover:bg-blue-50 transition-all bg-white relative">
+                    <div onclick="showStep('input')" class="workflow-step cursor-pointer group flex items-center p-4 rounded-lg border-2 border-blue-500 bg-blue-50 transition-all relative">
                         <div class="flex-shrink-0 h-12 w-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">1</div>
                         <div class="ml-4">
                             <h4 class="text-lg font-bold text-gray-900">输入与解析</h4>
@@ -433,8 +400,6 @@
                         </div>
                         <div class="absolute right-4 text-gray-300 group-hover:text-blue-500">➜</div>
                     </div>
-
-                    <!-- Step 2 -->
                     <div onclick="showStep('analysis')" class="workflow-step cursor-pointer group flex items-center p-4 rounded-lg border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all bg-white relative">
                         <div class="flex-shrink-0 h-12 w-12 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">2</div>
                         <div class="ml-4">
@@ -443,8 +408,6 @@
                         </div>
                         <div class="absolute right-4 text-gray-300 group-hover:text-blue-500">➜</div>
                     </div>
-
-                    <!-- Step 3 -->
                     <div onclick="showStep('interview')" class="workflow-step cursor-pointer group flex items-center p-4 rounded-lg border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all bg-white relative">
                         <div class="flex-shrink-0 h-12 w-12 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">3</div>
                         <div class="ml-4">
@@ -453,8 +416,6 @@
                         </div>
                         <div class="absolute right-4 text-gray-300 group-hover:text-blue-500">➜</div>
                     </div>
-
-                    <!-- Step 4 -->
                     <div onclick="showStep('review')" class="workflow-step cursor-pointer group flex items-center p-4 rounded-lg border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all bg-white relative">
                         <div class="flex-shrink-0 h-12 w-12 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-colors">4</div>
                         <div class="ml-4">
@@ -467,12 +428,8 @@
                 <!-- Details Panel Side -->
                 <div class="w-full md:w-1/2">
                     <div class="bg-gray-900 text-white rounded-xl p-8 shadow-2xl h-full min-h-[400px] flex flex-col justify-center relative overflow-hidden">
-                        <!-- Background Decoration -->
                         <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-blue-900 opacity-20"></div>
-                        
-                        <!-- Content Area -->
                         <div id="workflow-content">
-                            <!-- Default Content (Step 1) -->
                             <div class="animate-fade-in">
                                 <span class="inline-block px-3 py-1 bg-blue-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：输入</span>
                                 <h3 class="text-2xl font-bold mb-4">输入解析与弱点洞察</h3>
@@ -508,20 +465,20 @@
         </div>
     </section>
 
-    <!-- NEW SECTION: Full Mock Interview App Embedded -->
-    <section id="mock-interview-app-section" class="py-16 bg-white border-t border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- ENLARGED FULL MOCK INTERVIEW APP EMBEDDED -->
+    <section id="mock-interview-app-section" class="py-16 bg-slate-800 border-t border-gray-200 shadow-inner">
+        <div class="w-full px-4 sm:px-6 lg:px-12 mx-auto">
             <div class="text-center mb-10">
-                <h2 class="text-base text-primary font-semibold tracking-wide uppercase">完整功能体验</h2>
-                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900">AI 模拟面试助手 Pro</p>
-                <p class="mt-4 text-gray-600">在此处直接体验从配置参数到沉浸式面试，再到多维度报告生成的完整工作流。</p>
+                <h2 class="text-base text-blue-400 font-semibold tracking-wide uppercase">完整功能体验</h2>
+                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-white">AI 模拟面试助手 Pro</p>
+                <p class="mt-4 text-slate-300 max-w-2xl mx-auto">在此处直接体验从配置参数到沉浸式面试，再到多维度报告生成的完整工作流。</p>
             </div>
 
-            <!-- The App Container (Scoped and Embedded) -->
-            <div class="mock-app-container w-full max-w-7xl mx-auto border rounded-2xl shadow-2xl bg-slate-50 flex flex-col h-[850px] overflow-hidden text-slate-800">
+            <!-- The App Container: Enlarged Height & Width -->
+            <div class="mock-app-container w-full max-w-[1400px] mx-auto border border-slate-700 rounded-2xl shadow-2xl bg-slate-50 flex flex-col h-[900px] overflow-hidden text-slate-800">
                 
-                <!-- 导航栏 -->
-                <header class="bg-white shadow-sm border-b border-slate-200 py-4 px-6 flex justify-between items-center z-50">
+                <!-- 应用导航栏 -->
+                <header class="bg-white shadow-sm border-b border-slate-200 py-4 px-6 flex justify-between items-center z-50 shrink-0">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-xl">
                             <i class="fa-solid fa-robot"></i>
@@ -536,27 +493,26 @@
                     </div>
                 </header>
 
-                <!-- 主体容器 -->
-                <main class="flex-1 w-full max-w-7xl mx-auto p-4 md:p-6 flex flex-col relative overflow-hidden">
+                <!-- 应用主体容器 -->
+                <main class="flex-1 w-full p-4 md:p-8 flex flex-col relative overflow-hidden bg-slate-100">
 
                     <!-- 视图 1：面试配置区 (工作流起点) -->
-                    <div id="view-setup" class="fade-in flex-1 flex flex-col items-center justify-center overflow-y-auto">
-                        <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-8 w-full max-w-2xl my-auto">
+                    <div id="view-setup" class="fade-in flex-1 flex flex-col items-center justify-center overflow-y-auto custom-scroll">
+                        <div class="bg-white rounded-3xl shadow-lg border border-slate-200 p-8 w-full max-w-3xl my-auto">
                             <div class="text-center mb-8">
-                                <h2 class="text-2xl font-bold text-slate-800 mb-2">定制您的模拟面试</h2>
-                                <p class="text-slate-500">配置面试参数，AI将为您生成专属面试场景与题库</p>
+                                <h2 class="text-3xl font-bold text-slate-800 mb-3">定制您的模拟面试</h2>
+                                <p class="text-slate-500 text-lg">配置面试参数，AI将为您生成专属面试场景与题库</p>
                             </div>
 
                             <form id="setup-form" class="space-y-6">
-                                <!-- 岗位配置 -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div class="space-y-2">
-                                        <label class="block text-sm font-medium text-slate-700">目标岗位 <span class="text-red-500">*</span></label>
-                                        <input type="text" id="job-title" placeholder="例如：前端开发工程师、产品经理" class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" required value="高级前端开发工程师">
+                                        <label class="block text-sm font-bold text-slate-700">目标岗位 <span class="text-red-500">*</span></label>
+                                        <input type="text" id="job-title" placeholder="例如：前端开发工程师、产品经理" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" required value="高级前端开发工程师">
                                     </div>
                                     <div class="space-y-2">
-                                        <label class="block text-sm font-medium text-slate-700">面试轮次</label>
-                                        <select id="interview-type" class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white">
+                                        <label class="block text-sm font-bold text-slate-700">面试轮次</label>
+                                        <select id="interview-type" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none bg-white">
                                             <option value="technical">技术面 / 专业面</option>
                                             <option value="hr">HR面 / 综合素质面</option>
                                             <option value="manager">主管面 / 业务面</option>
@@ -564,19 +520,18 @@
                                     </div>
                                 </div>
 
-                                <!-- 难度与偏好 -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div class="space-y-2">
-                                        <label class="block text-sm font-medium text-slate-700">难度级别</label>
-                                        <select id="difficulty" class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary outline-none bg-white">
+                                        <label class="block text-sm font-bold text-slate-700">难度级别</label>
+                                        <select id="difficulty" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-primary outline-none bg-white">
                                             <option value="junior">初级 (基础概念为主)</option>
                                             <option value="mid" selected>中级 (实战与原理)</option>
                                             <option value="senior">高级 (架构与深度探究)</option>
                                         </select>
                                     </div>
                                     <div class="space-y-2">
-                                        <label class="block text-sm font-medium text-slate-700">面试风格</label>
-                                        <select id="style" class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary outline-none bg-white">
+                                        <label class="block text-sm font-bold text-slate-700">面试风格</label>
+                                        <select id="style" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-primary outline-none bg-white">
                                             <option value="friendly">温和引导型</option>
                                             <option value="strict" selected>严肃高压型</option>
                                             <option value="structured">结构化提问</option>
@@ -584,20 +539,11 @@
                                     </div>
                                 </div>
 
-                                <!-- 简历上传 (模拟) -->
-                                <div class="space-y-2">
-                                    <label class="block text-sm font-medium text-slate-700">导入简历 (可选，支持 PDF/Word)</label>
-                                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:bg-slate-50 transition-colors cursor-pointer" id="resume-upload">
-                                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
-                                        <p class="text-sm text-slate-500">点击或拖拽文件到此处上传，AI将根据简历深入挖掘</p>
-                                    </div>
-                                </div>
-
-                                <!-- ProView 核心功能开关 -->
-                                <div class="space-y-3 pt-4 border-t border-slate-100">
-                                    <h3 class="text-sm font-bold text-slate-800 mb-2"><i class="fa-solid fa-wand-magic-sparkles text-primary mr-2"></i>开启专属训练功能</h3>
+                                <!-- ProView 核心功能开关 (User requested toggle buttons here) -->
+                                <div class="space-y-4 pt-4 border-t border-slate-100">
+                                    <h3 class="text-base font-bold text-slate-800 mb-2"><i class="fa-solid fa-wand-magic-sparkles text-primary mr-2"></i>专属训练功能</h3>
                                     
-                                    <!-- Toggle 1: VAD 柔性干预 -->
+                                    <!-- Toggle 1: VAD -->
                                     <label class="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-indigo-50 cursor-pointer transition-colors bg-white">
                                         <div>
                                             <div class="font-bold text-slate-800 text-sm">🆘 VAD 柔性防卡壳干预</div>
@@ -609,7 +555,7 @@
                                         </div>
                                     </label>
 
-                                    <!-- Toggle 2: 简历找茬 -->
+                                    <!-- Toggle 2: DeepSeek -->
                                     <label class="flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:bg-indigo-50 cursor-pointer transition-colors bg-white">
                                         <div>
                                             <div class="font-bold text-slate-800 text-sm">🔍 DeepSeek 简历压力深挖</div>
@@ -622,80 +568,80 @@
                                     </label>
                                 </div>
 
-                                <button type="button" onclick="mockStartInterview()" class="w-full bg-primary hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 text-lg">
+                                <button type="button" onclick="mockStartInterview()" class="mt-8 w-full bg-primary hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-xl shadow-indigo-200 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2 text-xl">
                                     <i class="fa-solid fa-play"></i> 开始沉浸式模拟面试
                                 </button>
                             </form>
                         </div>
                     </div>
 
-                    <!-- 视图 2：沉浸式面试房间 (工作流核心) -->
+                    <!-- 视图 2：沉浸式面试房间 -->
                     <div id="view-interview" class="hidden h-full flex flex-col md:flex-row gap-6">
                         <!-- 左侧：AI 面试官界面 -->
-                        <div class="w-full md:w-1/2 flex flex-col bg-slate-900 rounded-2xl overflow-hidden shadow-xl relative h-full">
+                        <div class="w-full md:w-5/12 flex flex-col bg-slate-900 rounded-3xl overflow-hidden shadow-2xl relative h-full border border-slate-800">
                             <!-- 顶部状态 -->
-                            <div class="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-10 bg-gradient-to-b from-black/60 to-transparent text-white">
-                                <div class="flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                                    <span class="text-sm font-medium tracking-wider">REC 面试录制中</span>
+                            <div class="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-10 bg-gradient-to-b from-black/80 to-transparent text-white">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span>
+                                    <span class="text-sm font-bold tracking-widest">REC 面试录制中</span>
                                 </div>
-                                <div id="mock-timer" class="text-sm font-mono bg-black/40 px-3 py-1 rounded-md border border-white/10">00:00</div>
+                                <div id="mock-timer" class="text-base font-mono bg-black/50 px-4 py-1.5 rounded-lg border border-white/20">00:00</div>
                             </div>
 
                             <!-- AI 可视化主体 -->
                             <div class="flex-1 flex flex-col items-center justify-center p-8 relative">
                                 <!-- 背景波纹 -->
-                                <div class="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none">
-                                    <div class="w-64 h-64 border-2 border-primary rounded-full absolute mix-blend-screen"></div>
-                                    <div class="w-96 h-96 border border-purple-500 rounded-full absolute mix-blend-screen transform rotate-45"></div>
+                                <div class="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
+                                    <div class="w-80 h-80 border-2 border-primary rounded-full absolute mix-blend-screen"></div>
+                                    <div class="w-[500px] h-[500px] border border-purple-500 rounded-full absolute mix-blend-screen transform rotate-45"></div>
                                 </div>
                                 
                                 <!-- AI 头像 -->
-                                <div id="ai-avatar-container" class="relative z-10 mb-8">
-                                    <div class="w-32 h-32 rounded-full bg-gradient-to-br from-primary to-purple-600 p-1 shadow-2xl shadow-primary/40 ai-speaking" id="ai-ring">
-                                        <div class="w-full h-full bg-slate-900 rounded-full flex items-center justify-center text-5xl text-white">
+                                <div id="ai-avatar-container" class="relative z-10 mb-12">
+                                    <div class="w-40 h-40 rounded-full bg-gradient-to-br from-primary to-purple-600 p-1.5 shadow-2xl shadow-primary/50 ai-speaking" id="ai-ring">
+                                        <div class="w-full h-full bg-slate-900 rounded-full flex items-center justify-center text-6xl text-white">
                                             <i class="fa-solid fa-robot"></i>
                                         </div>
                                     </div>
                                 </div>
 
                                 <!-- 实时字幕 -->
-                                <div class="mt-auto w-full max-w-md bg-black/50 backdrop-blur-md rounded-xl p-4 border border-white/10 min-h-[80px] flex items-center justify-center text-center transition-all">
-                                    <p id="ai-subtitle" class="text-white text-lg font-medium leading-relaxed">正在初始化面试环境，请准备...</p>
+                                <div class="mt-auto w-full max-w-lg bg-black/60 backdrop-blur-lg rounded-2xl p-6 border border-white/10 min-h-[100px] flex items-center justify-center text-center transition-all shadow-xl">
+                                    <p id="ai-subtitle" class="text-white text-xl font-medium leading-relaxed tracking-wide">正在初始化面试环境，请准备...</p>
                                 </div>
                             </div>
 
                             <!-- 底部控制栏 -->
-                            <div class="bg-black/80 p-4 flex justify-center items-center gap-6 border-t border-white/10 shrink-0">
-                                <button class="w-12 h-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition-colors tooltip">
+                            <div class="bg-black/90 p-6 flex justify-center items-center gap-8 border-t border-white/10 shrink-0">
+                                <button class="w-14 h-14 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition-colors text-xl shadow-lg">
                                     <i class="fa-solid fa-microphone"></i>
                                 </button>
-                                <button class="w-12 h-12 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition-colors">
+                                <button class="w-14 h-14 rounded-full bg-slate-700 hover:bg-slate-600 text-white flex items-center justify-center transition-colors text-xl shadow-lg">
                                     <i class="fa-solid fa-video"></i>
                                 </button>
-                                <button onclick="mockEndInterview()" class="px-6 h-12 rounded-full bg-red-500 hover:bg-red-600 text-white font-medium flex items-center justify-center gap-2 transition-colors ml-4">
+                                <button onclick="mockEndInterview()" class="px-8 h-14 rounded-full bg-red-500 hover:bg-red-600 text-white font-bold flex items-center justify-center gap-2 transition-colors ml-6 shadow-lg shadow-red-500/30 text-lg">
                                     <i class="fa-solid fa-phone-slash"></i> 结束面试
                                 </button>
                             </div>
                         </div>
 
                         <!-- 右侧：交互与辅助面板 -->
-                        <div class="w-full md:w-1/2 flex flex-col bg-white rounded-2xl shadow-xl border border-slate-200 h-full">
-                            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl shrink-0">
-                                <h3 class="font-bold text-slate-800"><i class="fa-regular fa-comments text-primary mr-2"></i>面试交互记录</h3>
-                                <span class="text-xs bg-indigo-100 text-primary px-2 py-1 rounded-md" id="mock-status-badge">AI 思考中...</span>
+                        <div class="w-full md:w-7/12 flex flex-col bg-white rounded-3xl shadow-xl border border-slate-200 h-full overflow-hidden">
+                            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                                <h3 class="font-bold text-slate-800 text-lg"><i class="fa-regular fa-comments text-primary mr-2"></i>实时交互记录</h3>
+                                <span class="text-sm bg-indigo-100 text-primary px-3 py-1.5 rounded-lg font-medium shadow-sm" id="mock-status-badge">AI 思考中...</span>
                             </div>
                             
                             <!-- 聊天记录区 -->
-                            <div id="mock-chat-box" class="flex-1 p-4 overflow-y-auto space-y-4">
+                            <div id="mock-chat-box" class="flex-1 p-6 overflow-y-auto space-y-6 custom-scroll bg-slate-50/50">
                                 <!-- 动态生成消息 -->
                             </div>
 
                             <!-- 输入区 -->
-                            <div class="p-4 bg-slate-50 border-t border-slate-100 rounded-b-2xl shrink-0">
-                                <div class="flex gap-2 relative">
-                                    <textarea id="user-input" rows="2" class="flex-1 px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none text-sm" placeholder="输入您的回答，或点击左侧麦克风语音回答..."></textarea>
-                                    <button onclick="mockSubmitAnswer()" id="send-btn" class="absolute right-3 bottom-3 w-10 h-10 bg-primary hover:bg-indigo-700 text-white rounded-lg flex items-center justify-center transition-colors shadow-md disabled:opacity-50">
+                            <div class="p-6 bg-white border-t border-slate-100 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                                <div class="flex gap-3 relative">
+                                    <textarea id="user-input" rows="3" class="flex-1 px-5 py-4 rounded-2xl border-2 border-slate-200 focus:ring-0 focus:border-primary outline-none resize-none text-base transition-colors bg-slate-50 focus:bg-white" placeholder="输入您的回答，或点击左侧麦克风语音回答..."></textarea>
+                                    <button onclick="mockSubmitAnswer()" id="send-btn" class="absolute right-4 bottom-4 w-12 h-12 bg-primary hover:bg-indigo-700 text-white rounded-xl flex items-center justify-center transition-all shadow-lg hover:shadow-indigo-500/50 disabled:opacity-50 text-xl">
                                         <i class="fa-solid fa-paper-plane"></i>
                                     </button>
                                 </div>
@@ -703,61 +649,61 @@
                         </div>
                     </div>
 
-                    <!-- 视图 3：评估报告 (工作流终点) -->
-                    <div id="view-report" class="hidden flex-1 fade-in h-full overflow-y-auto pb-10">
-                        <div class="flex justify-between items-end mb-6">
+                    <!-- 视图 3：评估报告 -->
+                    <div id="view-report" class="hidden flex-1 fade-in h-full overflow-y-auto pb-10 custom-scroll px-4">
+                        <div class="flex justify-between items-end mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                             <div>
-                                <h2 class="text-3xl font-bold text-slate-800 mb-2">面试评估报告</h2>
-                                <p class="text-slate-500" id="report-meta">高级前端开发工程师 · 技术面 · 中级难度</p>
+                                <h2 class="text-3xl font-extrabold text-slate-800 mb-2">面试评估报告</h2>
+                                <p class="text-slate-500 font-medium text-lg" id="report-meta">高级前端开发工程师 · 技术面 · 中级难度</p>
                             </div>
-                            <button onclick="mockResetApp()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">
-                                <i class="fa-solid fa-rotate-right mr-1"></i> 开启新面试
+                            <button onclick="mockResetApp()" class="px-6 py-3 border-2 border-slate-300 rounded-xl font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-400 transition-colors shadow-sm">
+                                <i class="fa-solid fa-rotate-right mr-2"></i> 开启新面试
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                             <!-- 综合得分卡 -->
-                            <div class="lg:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-center">
-                                <div class="relative w-40 h-40 mb-4">
+                            <div class="lg:col-span-1 bg-white rounded-3xl shadow-lg border border-slate-200 p-8 flex flex-col items-center justify-center text-center">
+                                <div class="relative w-48 h-48 mb-6">
                                     <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                                         <path class="text-slate-100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                        <path class="text-primary transition-all duration-1000 ease-out" id="score-circle" stroke-width="3" stroke-dasharray="85, 100" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                        <path class="text-primary transition-all duration-1000 ease-out" id="score-circle" stroke-width="3" stroke-dasharray="0, 100" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                                     </svg>
                                     <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                        <span class="text-4xl font-extrabold text-slate-800">85</span>
-                                        <span class="text-xs text-slate-500">/ 100</span>
+                                        <span class="text-6xl font-black text-slate-800 tracking-tighter">85</span>
+                                        <span class="text-sm font-bold text-slate-400 mt-1">/ 100</span>
                                     </div>
                                 </div>
-                                <h3 class="text-xl font-bold text-slate-800">表现良好</h3>
-                                <p class="text-sm text-slate-500 mt-2">您的专业基础扎实，但在沟通逻辑和部分底层原理上还有提升空间。击败了 78% 的候选人。</p>
+                                <h3 class="text-2xl font-bold text-slate-800">表现良好</h3>
+                                <p class="text-base text-slate-500 mt-3 px-4">您的专业基础扎实，但在沟通逻辑和部分底层原理上还有提升空间。击败了 <strong>78%</strong> 的候选人。</p>
                             </div>
 
                             <!-- 雷达图评估维度 -->
-                            <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                                <h3 class="font-bold text-slate-800 mb-4 border-b pb-2">能力维度雷达图</h3>
-                                <div class="w-full h-64 flex justify-center">
+                            <div class="lg:col-span-2 bg-white rounded-3xl shadow-lg border border-slate-200 p-8 flex flex-col">
+                                <h3 class="font-bold text-slate-800 text-xl mb-6 border-b border-slate-100 pb-3">能力维度雷达图</h3>
+                                <div class="w-full flex-1 min-h-[300px] flex justify-center">
                                     <canvas id="mockRadarChart"></canvas>
                                 </div>
                             </div>
 
                             <!-- 详细评价与建议 -->
-                            <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-emerald-50 rounded-2xl p-6 border border-emerald-100">
-                                    <h3 class="font-bold text-emerald-800 mb-4 flex items-center gap-2">
-                                        <i class="fa-solid fa-circle-check text-emerald-500"></i> 亮点与优势 (Strengths)
+                            <div class="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-8 mt-2">
+                                <div class="bg-emerald-50 rounded-3xl p-8 border border-emerald-100 shadow-sm">
+                                    <h3 class="font-bold text-emerald-800 text-xl mb-6 flex items-center gap-3">
+                                        <i class="fa-solid fa-circle-check text-emerald-500 text-2xl"></i> 亮点与优势 (Strengths)
                                     </h3>
-                                    <ul class="space-y-3 text-emerald-900 text-sm list-disc list-inside">
+                                    <ul class="space-y-4 text-emerald-900 text-base list-disc list-inside">
                                         <li>对基础概念（如闭包、原型链）理解深刻，能结合实际业务场景说明。</li>
                                         <li>代码规范意识强，提到了模块化和组件化设计的最佳实践。</li>
                                         <li>面对压力测试时情绪稳定，态度积极。</li>
                                     </ul>
                                 </div>
 
-                                <div class="bg-amber-50 rounded-2xl p-6 border border-amber-100">
-                                    <h3 class="font-bold text-amber-800 mb-4 flex items-center gap-2">
-                                        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> 待提升项 (Weaknesses)
+                                <div class="bg-amber-50 rounded-3xl p-8 border border-amber-100 shadow-sm">
+                                    <h3 class="font-bold text-amber-800 text-xl mb-6 flex items-center gap-3">
+                                        <i class="fa-solid fa-triangle-exclamation text-amber-500 text-2xl"></i> 待提升项 (Weaknesses)
                                     </h3>
-                                    <ul class="space-y-3 text-amber-900 text-sm list-disc list-inside">
+                                    <ul class="space-y-4 text-amber-900 text-base list-disc list-inside">
                                         <li>在回答系统架构级问题时，逻辑略显发散，建议采用 STAR 原则构建回答框架。</li>
                                         <li>对于最新的前端框架底层渲染机制（如 React Fiber）的理解不够深入。</li>
                                         <li>部分问题回答语速过快，缺乏停顿思考的缓冲。</li>
@@ -772,23 +718,13 @@
     </section>
 
     <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-8">
+    <footer class="bg-gray-800 text-white py-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p class="text-gray-400 text-sm">© 2026 ProView AI. High-Pressure Survival Training.</p>
-            <p class="text-gray-500 text-xs mt-2">版本: V1.0 | 创建日期: 2026年2月22</p>
+            <div class="text-2xl font-bold text-white mb-4">ProView AI</div>
+            <p class="text-gray-400 text-sm">© 2026 ProView AI. High-Pressure Survival Training for Candidates.</p>
+            <p class="text-gray-500 text-xs mt-2">版本: V1.0 | 构建于 2026</p>
         </div>
     </footer>
-
-    <!-- Style for Toggle Switch -->
-    <style>
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #4F46E5;
-        }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #4F46E5;
-        }
-    </style>
 
     <!-- JavaScript Logic -->
     <script>
@@ -796,135 +732,43 @@
         // SECTION 1: PROVIEW LANDING PAGE LOGIC
         // ==========================================
         
-        // Data derived from the Source Report tables
         const surveyData = {
-            users: {
-                labels: ['找工作', '考研研究生', '准备项目答辩'],
-                data: [63.16, 21.05, 15.79],
-                colors: ['#3B82F6', '#8B5CF6', '#F59E0B']
-            },
+            users: { labels: ['找工作', '考研研究生', '准备项目答辩'], data: [63.16, 21.05, 15.79], colors: ['#3B82F6', '#8B5CF6', '#F59E0B'] },
             stress: {
-                job: {
-                    labels: ['紧张卡壳', '简历注水怕深挖', '八股文/空白', '无反馈'],
-                    data: [54.17, 70.83, 70.83, 45.83]
-                },
-                postgrad: {
-                    labels: ['英语口语薄弱', '冷门知识盲区', '履历弱点压力面', '临场心态崩盘'],
-                    data: [62.5, 75, 62.5, 62.5]
-                },
-                defense: {
-                    labels: ['项目被识破注水', '评委提问太宏观', '无法应对挑刺', 'PPT演讲解说'],
-                    data: [83.33, 100, 50, 50] // Approximate based on mixed data in doc
-                }
+                job: { labels: ['紧张卡壳', '简历注水怕深挖', '八股文/空白', '无反馈'], data: [54.17, 70.83, 70.83, 45.83] },
+                postgrad: { labels: ['英语口语薄弱', '冷门知识盲区', '履历弱点压力面', '临场心态崩盘'], data: [62.5, 75, 62.5, 62.5] },
+                defense: { labels: ['项目被识破注水', '评委提问太宏观', '无法应对挑刺', 'PPT演讲解说'], data: [83.33, 100, 50, 50] }
             },
-            attraction: {
-                labels: ['更狠更刁钻', '覆盖面广(近5年真题)', '随时随地', '隐私保护'],
-                data: [58.33, 87.5, 83.33, 54.17]
-            }
+            attraction: { labels: ['更狠更刁钻', '覆盖面广(近5年真题)', '随时随地', '隐私保护'], data: [58.33, 87.5, 83.33, 54.17] }
         };
 
         let stressChartInstance = null;
 
         function initCharts() {
-            // 1. User Type Chart (Doughnut)
             const ctxUser = document.getElementById('userTypeChart').getContext('2d');
-            new Chart(ctxUser, {
-                type: 'doughnut',
-                data: {
-                    labels: surveyData.users.labels,
-                    datasets: [{
-                        data: surveyData.users.data,
-                        backgroundColor: surveyData.users.colors,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right' }
-                    }
-                }
-            });
+            new Chart(ctxUser, { type: 'doughnut', data: { labels: surveyData.users.labels, datasets: [{ data: surveyData.users.data, backgroundColor: surveyData.users.colors, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } } });
 
-            // 2. Stress Source Chart (Bar) - Dynamic
             const ctxStress = document.getElementById('stressChart').getContext('2d');
-            stressChartInstance = new Chart(ctxStress, {
-                type: 'bar',
-                data: {
-                    labels: surveyData.stress.job.labels,
-                    datasets: [{
-                        label: '压力占比 (%)',
-                        data: surveyData.stress.job.data,
-                        backgroundColor: '#3B82F6',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, max: 100 }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
+            stressChartInstance = new Chart(ctxStress, { type: 'bar', data: { labels: surveyData.stress.job.labels, datasets: [{ label: '压力占比 (%)', data: surveyData.stress.job.data, backgroundColor: '#3B82F6', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } }, plugins: { legend: { display: false } } } });
 
-            // 3. Attraction Chart (Horizontal Bar)
             const ctxAttract = document.getElementById('attractionChart').getContext('2d');
-            new Chart(ctxAttract, {
-                type: 'bar',
-                indexAxis: 'y',
-                data: {
-                    labels: surveyData.attraction.labels,
-                    datasets: [{
-                        label: '吸引力 (%)',
-                        data: surveyData.attraction.data,
-                        backgroundColor: '#10B981', // Emerald
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { beginAtZero: true, max: 100 }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
+            new Chart(ctxAttract, { type: 'bar', indexAxis: 'y', data: { labels: surveyData.attraction.labels, datasets: [{ label: '吸引力 (%)', data: surveyData.attraction.data, backgroundColor: '#10B981', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, max: 100 } }, plugins: { legend: { display: false } } } });
         }
 
         function setupInteractions() {
-            // Stress Chart Filter
             document.getElementById('stressFilter').addEventListener('change', (e) => {
                 const type = e.target.value;
                 const newData = surveyData.stress[type];
-                
                 stressChartInstance.data.labels = newData.labels;
                 stressChartInstance.data.datasets[0].data = newData.data;
-                
-                // Update Color based on type
                 const colors = { 'job': '#3B82F6', 'postgrad': '#8B5CF6', 'defense': '#F59E0B' };
                 stressChartInstance.data.datasets[0].backgroundColor = colors[type];
-                
-                // Update Text
-                const desc = {
-                    'job': '求职者最大的恐惧是对“八股文”及开放性深挖问题的空白 (70.83%)。',
-                    'postgrad': '考研党最怕问到冷门知识点导致大脑一片空白 (75%)。',
-                    'defense': '答辩选手最担心评委提问太宏观超出认知 (100%)。'
-                };
+                const desc = { 'job': '求职者最大的恐惧是对“八股文”及开放性深挖问题的空白 (70.83%)。', 'postgrad': '考研党最怕问到冷门知识点导致大脑一片空白 (75%)。', 'defense': '答辩选手最担心评委提问太宏观超出认知 (100%)。' };
                 document.getElementById('stressDesc').innerText = desc[type];
-
                 stressChartInstance.update();
             });
         }
 
-        // --- Persona Toggle Logic ---
         function togglePersonaDetails(id) {
             const el = document.getElementById(`details-${id}`);
             if (el.classList.contains('hidden')) {
@@ -935,71 +779,21 @@
             }
         }
 
-        // --- Interactive Workflow Logic ---
         const workflowContents = {
-            'input': `
-                <div class="animate-fade-in">
-                    <span class="inline-block px-3 py-1 bg-blue-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：输入</span>
-                    <h3 class="text-2xl font-bold mb-4">输入解析与弱点洞察</h3>
-                    <p class="text-gray-300 mb-6">这是初始化的关键步骤。Agent 必须先了解你，才能“攻击”你。</p>
-                    <div class="space-y-4">
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">PaddleOCR 引擎</p><p class="text-xs text-gray-400">精准扫描 PDF 简历，将非结构化文档转为文本数据。</p></div></div>
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">DeepSeek 弱点扫描</p><p class="text-xs text-gray-400">大模型寻找逻辑漏洞（如：实习时间短但项目过大）和注水嫌疑点。</p></div></div>
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">场景配置</p><p class="text-xs text-gray-400">用户选择人设（严厉/温柔）及是否开启“卡壳急救”。</p></div></div>
-                    </div>
-                </div>`,
-            'analysis': `
-                <div class="animate-fade-in">
-                    <span class="inline-block px-3 py-1 bg-purple-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：策略</span>
-                    <h3 class="text-2xl font-bold mb-4">RAG 检索与策略生成</h3>
-                    <p class="text-gray-300 mb-6">不打无准备之仗。Agent 利用 RAG 技术构建“超级面经库”。</p>
-                    <div class="space-y-4">
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-purple-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">超级面经库 (RAG)</p><p class="text-xs text-gray-400">检索目标岗位/院校近 5 年的高频真题与核心考察点。</p></div></div>
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-purple-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">Prompt 动态注入</p><p class="text-xs text-gray-400">加载"严厉面试官"或"慈祥导师"的 System Prompt，设定打断概率。</p></div></div>
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-purple-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">初始化面试大纲</p><p class="text-xs text-gray-400">生成一份包含基础题、深挖题和压力测试题的动态脚本。</p></div></div>
-                    </div>
-                </div>`,
-            'interview': `
-                <div class="animate-fade-in">
-                    <span class="inline-block px-3 py-1 bg-amber-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：对弈</span>
-                    <h3 class="text-2xl font-bold mb-4">全真模拟与柔性干预</h3>
-                    <p class="text-gray-300 mb-6">核心壁垒。VAD 实时监测，区分“思考”与“卡壳”。</p>
-                    <div class="space-y-4">
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-amber-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">火山 TTS/Paraformer</p><p class="text-xs text-gray-400">极低延迟的语音合成与识别，还原真实对话节奏。</p></div></div>
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-amber-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">VAD 状态检测</p><p class="text-xs text-gray-400">监测沉默时长。若 >5秒 且开启引导模式，触发救援。</p></div></div>
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-amber-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">实时追问</p><p class="text-xs text-gray-400">若回答有逻辑漏洞，LLM 立即生成追问，进行极限施压。</p></div></div>
-                    </div>
-                </div>`,
-            'review': `
-                <div class="animate-fade-in">
-                    <span class="inline-block px-3 py-1 bg-green-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：交付</span>
-                    <h3 class="text-2xl font-bold mb-4">多维复盘报告</h3>
-                    <p class="text-gray-300 mb-6">面试结束不是终点。数据化你的表现，提供可执行的改进方案。</p>
-                    <div class="space-y-4">
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-green-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">简历修改建议</p><p class="text-xs text-gray-400">基于刚才的“被怼”经历，指出简历哪里写得太假。</p></div></div>
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-green-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">八股文救急包</p><p class="text-xs text-gray-400">针对答不上的知识点，生成标准的背诵清单与高情商话术。</p></div></div>
-                        <div class="flex items-start"><div class="h-6 w-6 rounded bg-green-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">表现雷达图</p><p class="text-xs text-gray-400">分析逻辑连贯性、情绪稳定性、表达流畅度。</p></div></div>
-                    </div>
-                </div>`
+            'input': `<div class="animate-fade-in"><span class="inline-block px-3 py-1 bg-blue-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：输入</span><h3 class="text-2xl font-bold mb-4">输入解析与弱点洞察</h3><p class="text-gray-300 mb-6">这是初始化的关键步骤。Agent 必须先了解你，才能“攻击”你。</p><div class="space-y-4"><div class="flex items-start"><div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">PaddleOCR 引擎</p><p class="text-xs text-gray-400">精准扫描 PDF 简历，将非结构化文档转为文本数据。</p></div></div><div class="flex items-start"><div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">DeepSeek 弱点扫描</p><p class="text-xs text-gray-400">大模型寻找逻辑漏洞（如：实习时间短但项目过大）和注水嫌疑点。</p></div></div><div class="flex items-start"><div class="h-6 w-6 rounded bg-blue-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">场景配置</p><p class="text-xs text-gray-400">用户选择人设（严厉/温柔）及是否开启“卡壳急救”。</p></div></div></div></div>`,
+            'analysis': `<div class="animate-fade-in"><span class="inline-block px-3 py-1 bg-purple-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：策略</span><h3 class="text-2xl font-bold mb-4">RAG 检索与策略生成</h3><p class="text-gray-300 mb-6">不打无准备之仗。Agent 利用 RAG 技术构建“超级面经库”。</p><div class="space-y-4"><div class="flex items-start"><div class="h-6 w-6 rounded bg-purple-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">超级面经库 (RAG)</p><p class="text-xs text-gray-400">检索目标岗位/院校近 5 年的高频真题与核心考察点。</p></div></div><div class="flex items-start"><div class="h-6 w-6 rounded bg-purple-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">Prompt 动态注入</p><p class="text-xs text-gray-400">加载"严厉面试官"或"慈祥导师"的 System Prompt，设定打断概率。</p></div></div><div class="flex items-start"><div class="h-6 w-6 rounded bg-purple-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">初始化面试大纲</p><p class="text-xs text-gray-400">生成一份包含基础题、深挖题和压力测试题的动态脚本。</p></div></div></div></div>`,
+            'interview': `<div class="animate-fade-in"><span class="inline-block px-3 py-1 bg-amber-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：对弈</span><h3 class="text-2xl font-bold mb-4">全真模拟与柔性干预</h3><p class="text-gray-300 mb-6">核心壁垒。VAD 实时监测，区分“思考”与“卡壳”。</p><div class="space-y-4"><div class="flex items-start"><div class="h-6 w-6 rounded bg-amber-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">火山 TTS/Paraformer</p><p class="text-xs text-gray-400">极低延迟的语音合成与识别，还原真实对话节奏。</p></div></div><div class="flex items-start"><div class="h-6 w-6 rounded bg-amber-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">VAD 状态检测</p><p class="text-xs text-gray-400">监测沉默时长。若 >5秒 且开启引导模式，触发救援。</p></div></div><div class="flex items-start"><div class="h-6 w-6 rounded bg-amber-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">实时追问</p><p class="text-xs text-gray-400">若回答有逻辑漏洞，LLM 立即生成追问，进行极限施压。</p></div></div></div></div>`,
+            'review': `<div class="animate-fade-in"><span class="inline-block px-3 py-1 bg-green-600 rounded-full text-xs font-bold tracking-wide uppercase mb-4">当前阶段：交付</span><h3 class="text-2xl font-bold mb-4">多维复盘报告</h3><p class="text-gray-300 mb-6">面试结束不是终点。数据化你的表现，提供可执行的改进方案。</p><div class="space-y-4"><div class="flex items-start"><div class="h-6 w-6 rounded bg-green-500 flex items-center justify-center text-xs mr-3 mt-1">1</div><div><p class="font-bold">简历修改建议</p><p class="text-xs text-gray-400">基于刚才的“被怼”经历，指出简历哪里写得太假。</p></div></div><div class="flex items-start"><div class="h-6 w-6 rounded bg-green-500 flex items-center justify-center text-xs mr-3 mt-1">2</div><div><p class="font-bold">八股文救急包</p><p class="text-xs text-gray-400">针对答不上的知识点，生成标准的背诵清单与高情商话术。</p></div></div><div class="flex items-start"><div class="h-6 w-6 rounded bg-green-500 flex items-center justify-center text-xs mr-3 mt-1">3</div><div><p class="font-bold">表现雷达图</p><p class="text-xs text-gray-400">分析逻辑连贯性、情绪稳定性、表达流畅度。</p></div></div></div></div>`
         };
 
         function showStep(stepKey) {
-            document.querySelectorAll('.workflow-step').forEach(el => {
-                el.classList.remove('border-blue-500', 'bg-blue-50');
-                el.classList.add('border-gray-100');
-            });
+            document.querySelectorAll('.workflow-step').forEach(el => { el.classList.remove('border-blue-500', 'bg-blue-50'); el.classList.add('border-gray-100'); });
             event.currentTarget.classList.remove('border-gray-100');
             event.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
-
-            const container = document.getElementById('workflow-content');
-            container.innerHTML = workflowContents[stepKey];
+            document.getElementById('workflow-content').innerHTML = workflowContents[stepKey];
         }
 
-        // Initialize Global Elements
-        document.addEventListener('DOMContentLoaded', () => {
-            initCharts();
-            setupInteractions();
-        });
+        document.addEventListener('DOMContentLoaded', () => { initCharts(); setupInteractions(); });
 
 
         // ==========================================
@@ -1012,8 +806,8 @@
         let mockIsAiSpeaking = false;
         
         const mockInterviewScript = [
-            "你好，我是今天的AI面试官。我已经阅读了您的基本信息。首先，能用一分钟简单做一个自我介绍吗？",
-            "好的，感谢你的介绍。我注意到你申请的是高级职位。你能详细谈谈在你过往的项目中，遇到过最具挑战性的技术难题是什么，以及你是如何解决它的吗？",
+            "你好，我是今天的AI面试官。我已经阅读了您的基本信息和简历。首先，能用一分钟简单做一个自我介绍吗？",
+            "好的，感谢你的介绍。我注意到你申请的是高级职位，并且开启了我们的深度挖掘模式。你能详细谈谈在你过往的项目中，遇到过最具挑战性的技术难题是什么，以及你是如何解决它的吗？数据上的提升是怎么样的？",
             "明白。那么从架构设计的角度来看，如果让你从零主导设计一个高并发的系统或复杂的前端应用，你通常会如何进行技术选型和性能优化？",
             "最后一个问题，你对未来的职业发展有什么规划？以及，你有什么问题想要问我的吗？"
         ];
@@ -1031,10 +825,7 @@
 
         function mockStartInterview() {
             const jobTitle = document.getElementById('job-title').value;
-            if(!jobTitle) {
-                alert("请输入目标岗位");
-                return;
-            }
+            if(!jobTitle) { alert("请输入目标岗位"); return; }
             
             const typeEl = document.getElementById('interview-type');
             const type = typeEl.options[typeEl.selectedIndex].text;
@@ -1054,8 +845,11 @@
         function mockTriggerAiSpeak(text) {
             mockIsAiSpeaking = true;
             document.getElementById('ai-ring').classList.add('ai-speaking');
-            document.getElementById('mock-status-badge').innerText = 'AI 讲话中...';
-            document.getElementById('mock-status-badge').className = 'text-xs bg-indigo-100 text-primary px-2 py-1 rounded-md';
+            
+            const badge = document.getElementById('mock-status-badge');
+            badge.innerText = 'AI 讲话中...';
+            badge.className = 'text-sm bg-indigo-100 text-primary px-3 py-1.5 rounded-lg font-medium shadow-sm';
+            
             document.getElementById('send-btn').disabled = true;
 
             const subtitleEl = document.getElementById('ai-subtitle');
@@ -1068,14 +862,17 @@
                     clearInterval(typingInterval);
                     mockFinishAiSpeak(text);
                 }
-            }, 50);
+            }, 40); // Faster typing
         }
 
         function mockFinishAiSpeak(fullText) {
             mockIsAiSpeaking = false;
             document.getElementById('ai-ring').classList.remove('ai-speaking');
-            document.getElementById('mock-status-badge').innerText = '等待您的回答...';
-            document.getElementById('mock-status-badge').className = 'text-xs bg-emerald-100 text-emerald-600 px-2 py-1 rounded-md';
+            
+            const badge = document.getElementById('mock-status-badge');
+            badge.innerText = '等待您的回答...';
+            badge.className = 'text-sm bg-emerald-100 text-emerald-600 px-3 py-1.5 rounded-lg font-medium shadow-sm';
+            
             document.getElementById('send-btn').disabled = false;
             document.getElementById('user-input').focus();
             
@@ -1092,8 +889,9 @@
             mockAppendMessage('user', text);
             inputEl.value = '';
             
-            document.getElementById('mock-status-badge').innerText = 'AI 思考中...';
-            document.getElementById('mock-status-badge').className = 'text-xs bg-amber-100 text-amber-600 px-2 py-1 rounded-md';
+            const badge = document.getElementById('mock-status-badge');
+            badge.innerText = 'AI 思考中...';
+            badge.className = 'text-sm bg-amber-100 text-amber-600 px-3 py-1.5 rounded-lg font-medium shadow-sm';
             
             setTimeout(() => {
                 mockCurrentQuestionIndex++;
@@ -1101,9 +899,7 @@
                     mockTriggerAiSpeak(mockInterviewScript[mockCurrentQuestionIndex]);
                 } else {
                     mockTriggerAiSpeak("非常感谢你的解答。今天的面试就到这里结束了，稍后系统会为您生成详细的评估报告。祝您好运！");
-                    setTimeout(() => {
-                        mockEndInterview();
-                    }, 5000);
+                    setTimeout(() => { mockEndInterview(); }, 5000);
                 }
             }, 1500);
         }
@@ -1113,22 +909,22 @@
             const msgDiv = document.createElement('div');
             
             if (role === 'ai') {
-                msgDiv.className = 'flex gap-3 max-w-[85%] fade-in';
+                msgDiv.className = 'flex gap-4 max-w-[85%] fade-in';
                 msgDiv.innerHTML = `
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-xs shadow-sm">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-base shadow-md">
                         <i class="fa-solid fa-robot"></i>
                     </div>
-                    <div class="bg-slate-100 text-slate-800 px-4 py-3 rounded-2xl rounded-tl-none shadow-sm text-sm leading-relaxed">
+                    <div class="bg-white text-slate-800 px-5 py-4 rounded-2xl rounded-tl-none shadow-sm text-base leading-relaxed border border-slate-100">
                         ${text}
                     </div>
                 `;
             } else {
-                msgDiv.className = 'flex gap-3 max-w-[85%] self-end ml-auto justify-end fade-in';
+                msgDiv.className = 'flex gap-4 max-w-[85%] self-end ml-auto justify-end fade-in';
                 msgDiv.innerHTML = `
-                    <div class="bg-primary text-white px-4 py-3 rounded-2xl rounded-tr-none shadow-sm text-sm leading-relaxed">
+                    <div class="bg-primary text-white px-5 py-4 rounded-2xl rounded-tr-none shadow-md text-base leading-relaxed">
                         ${text}
                     </div>
-                    <div class="w-8 h-8 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-slate-600 text-xs shadow-sm border border-slate-300">
+                    <div class="w-10 h-10 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-slate-600 text-base shadow-sm border border-slate-300">
                         <i class="fa-solid fa-user"></i>
                     </div>
                 `;
@@ -1158,7 +954,7 @@
             
             setTimeout(() => {
                 document.getElementById('score-circle').setAttribute('stroke-dasharray', '85, 100');
-            }, 300);
+            }, 500);
         }
 
         function mockResetApp() {
@@ -1169,9 +965,7 @@
         function mockInitRadarChart() {
             const ctx = document.getElementById('mockRadarChart').getContext('2d');
             
-            if(mockRadarChartInstance) {
-                mockRadarChartInstance.destroy();
-            }
+            if(mockRadarChartInstance) { mockRadarChartInstance.destroy(); }
 
             mockRadarChartInstance = new Chart(ctx, {
                 type: 'radar',
@@ -1196,10 +990,7 @@
                         r: {
                             angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
                             grid: { color: 'rgba(0, 0, 0, 0.1)' },
-                            pointLabels: {
-                                font: { family: 'sans-serif', size: 12, weight: 'bold' },
-                                color: '#475569'
-                            },
+                            pointLabels: { font: { family: 'sans-serif', size: 14, weight: 'bold' }, color: '#475569' },
                             ticks: { display: false, min: 0, max: 100 }
                         }
                     },
@@ -1209,10 +1000,7 @@
         }
 
         document.getElementById('user-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                mockSubmitAnswer();
-            }
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); mockSubmitAnswer(); }
         });
 
     </script>
