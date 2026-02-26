@@ -8,21 +8,19 @@
     <!-- 1. 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. 引入 Phosphor Icons 图标库 (替代本地依赖的 lucide-react) -->
+    <!-- 2. 引入 Phosphor Icons 图标库 -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-    <!-- 3. 引入 React 和 ReactDOM (核心依赖) -->
+    <!-- 3. 引入 React 和 ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     
-    <!-- 4. 引入 Babel (用于在浏览器中实时编译 JSX) -->
+    <!-- 4. 引入 Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body>
-    <!-- React 将会渲染到这个 div 中 -->
     <div id="root"></div>
 
-    <!-- 5. 你的 React 业务代码 (注意 type="text/babel") -->
     <script type="text/babel">
         const { useState, useEffect } = React;
 
@@ -64,14 +62,17 @@
         };
 
         function App() {
-          const [activeTab, setActiveTab] = useState('generator'); // 默认展示功能页
-          const [activeCodeTab, setActiveCodeTab] = useState('workflow'); // 默认展示总工作流
+          const [activeTab, setActiveTab] = useState('generator');
+          const [activeCodeTab, setActiveCodeTab] = useState('workflow');
           const [copied, setCopied] = useState(false);
 
           // 官方独立 Demo 配置状态
           const [officialDemoModel, setOfficialDemoModel] = useState('PP-OCRv5');
           const [officialDemoMode, setOfficialDemoMode] = useState('sync');
           const [copiedOfficial, setCopiedOfficial] = useState(false);
+
+          // 新增：图片放大 (Lightbox) 状态
+          const [zoomedImg, setZoomedImg] = useState(null);
 
           // 代码生成器配置状态
           const [config, setConfig] = useState({
@@ -92,7 +93,6 @@
             setTimeout(() => setCopied(false), 2000);
           };
 
-          // ---- 动态组装官方 API Code (提取为独立函数) ----
           const getOfficialDemoCode = (modelId, mode) => {
             const isOcrV5 = modelId === 'PP-OCRv5';
             const resultsKey = isOcrV5 ? 'ocrResults' : 'layoutParsingResults';
@@ -308,7 +308,6 @@ if __name__ == "__main__":
             }
           };
 
-          // ---- 代码块生成逻辑 ----
           const codeBlocks = {
             dpi: `from PIL import Image
 import cv2
@@ -408,7 +407,6 @@ def remove_moire_pattern(image):
     return cv2.GaussianBlur(image, (3, 3), 0)`
           };
 
-          // 生成最终的总工作流代码
           const generateWorkflowCode = () => {
             let code = `import base64
 import os
@@ -434,7 +432,6 @@ MODEL = "${config.model}"
 # 核心预处理算法模块集成
 # ==========================================
 `;
-            // 注入选中的模块代码（去掉重复的 import）
             if (config.enableDpi) code += codeBlocks.dpi.replace(/import .*\n/g, '').replace(/from .*\n/g, '') + '\n';
             if (config.enableResize) code += codeBlocks.resize.replace(/import .*\n/g, '').replace(/from .*\n/g, '') + '\n';
             if (config.enableDeskew) code += codeBlocks.deskew.replace(/import .*\n/g, '').replace(/from .*\n/g, '') + '\n';
@@ -562,7 +559,6 @@ if __name__ == "__main__":
             return code;
           };
 
-          // 动态计算目前可见的代码 Tabs
           const visibleCodeTabs = [
             { id: 'workflow', label: '总工作流调用', icon: <i className="ph-bold ph-terminal text-base"></i> },
             ...(config.enableDpi ? [{ id: 'dpi', label: 'DPI 重采样', icon: <i className="ph-bold ph-image text-base"></i> }] : []),
@@ -572,7 +568,6 @@ if __name__ == "__main__":
             ...(config.enableMoire ? [{ id: 'moire', label: '去摩尔纹', icon: <i className="ph-bold ph-desktop text-base"></i> }] : [])
           ];
 
-          // 当关闭某个开关时，如果当前激活的 tab 正是那个模块，切回工作流
           useEffect(() => {
             if (!visibleCodeTabs.find(t => t.id === activeCodeTab)) {
               setActiveCodeTab('workflow');
@@ -589,7 +584,7 @@ if __name__ == "__main__":
           };
 
           return (
-            <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans selection:bg-blue-200">
+            <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans selection:bg-blue-200 relative">
               {/* ================= 顶栏 ================= */}
               <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-20 shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -721,17 +716,29 @@ if __name__ == "__main__":
                             <h4 className="font-bold text-slate-700">原生直传 (未处理)</h4>
                           </div>
                           
-                          {/* --- 实际图片展示：未处理图片 --- */}
-                          <div className="w-full h-64 bg-slate-100/80 border border-slate-200 rounded-xl mb-6 flex overflow-hidden relative group-hover:border-red-300 transition-colors shadow-inner">
+                          {/* --- 实际图片展示：未处理图片 (放大高度至350px并增加放大功能) --- */}
+                          <div className="w-full h-[350px] bg-slate-100/80 border border-slate-200 rounded-xl mb-6 flex overflow-hidden relative transition-colors shadow-inner">
                             {/* 左半边：原图 */}
-                            <div className="w-1/2 h-full relative border-r border-slate-200">
-                              <span className="absolute top-2 left-2 bg-slate-800/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm z-10">输入原图</span>
-                              <img src="./raw_test_0.png" alt="未处理原图" className="w-full h-full object-contain bg-slate-50 p-2" />
+                            <div 
+                              className="w-1/2 h-full relative border-r border-slate-200 group/left cursor-zoom-in bg-white"
+                              onClick={() => setZoomedImg('./raw_test_0.png')}
+                            >
+                              <span className="absolute top-2 left-2 bg-slate-800/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm z-20 pointer-events-none">输入原图</span>
+                              <div className="absolute inset-0 bg-transparent group-hover/left:bg-black/10 transition-colors flex items-center justify-center z-10 pointer-events-none">
+                                <i className="ph-bold ph-magnifying-glass-plus text-3xl text-white opacity-0 group-hover/left:opacity-100 drop-shadow-md transition-opacity"></i>
+                              </div>
+                              <img src="./raw_test_0.png" alt="未处理原图" className="w-full h-full object-contain p-2" />
                             </div>
                             {/* 右半边：识别效果 */}
-                            <div className="w-1/2 h-full relative">
-                              <span className="absolute top-2 left-2 bg-red-500/80 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm z-10">识别效果 (幻觉)</span>
-                              <img src="./layout_det_res_0.jpg" alt="未处理原图识别效果图" className="w-full h-full object-contain bg-slate-50 p-2" />
+                            <div 
+                              className="w-1/2 h-full relative group/right cursor-zoom-in bg-slate-50"
+                              onClick={() => setZoomedImg('./layout_det_res_0.jpg')}
+                            >
+                              <span className="absolute top-2 left-2 bg-red-500/80 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm z-20 pointer-events-none">识别效果 (幻觉)</span>
+                              <div className="absolute inset-0 bg-transparent group-hover/right:bg-black/10 transition-colors flex items-center justify-center z-10 pointer-events-none">
+                                <i className="ph-bold ph-magnifying-glass-plus text-3xl text-white opacity-0 group-hover/right:opacity-100 drop-shadow-md transition-opacity"></i>
+                              </div>
+                              <img src="./layout_det_res_0.jpg" alt="未处理原图识别效果图" className="w-full h-full object-contain p-2" />
                             </div>
                           </div>
 
@@ -762,9 +769,15 @@ if __name__ == "__main__":
                             <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold border border-emerald-100">推荐方案</span>
                           </div>
 
-                          {/* --- 实际图片展示：处理后图片 --- */}
-                          <div className="w-full h-64 bg-emerald-50/50 border border-emerald-200 rounded-xl mb-6 overflow-hidden relative group-hover:border-emerald-400 transition-colors shadow-inner">
-                            <span className="absolute top-2 left-2 bg-emerald-500/80 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm z-10">处理后识别效果图</span>
+                          {/* --- 实际图片展示：处理后图片 (放大高度至350px并增加放大功能) --- */}
+                          <div 
+                            className="w-full h-[350px] bg-emerald-50/50 border border-emerald-200 rounded-xl mb-6 overflow-hidden relative group/processed cursor-zoom-in transition-colors shadow-inner hover:border-emerald-400"
+                            onClick={() => setZoomedImg('./dpi100_layout_det_res_0.jpg')}
+                          >
+                            <span className="absolute top-2 left-2 bg-emerald-500/80 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm z-20 pointer-events-none">处理后识别效果图</span>
+                            <div className="absolute inset-0 bg-transparent group-hover/processed:bg-black/5 transition-colors flex items-center justify-center z-10 pointer-events-none">
+                                <i className="ph-bold ph-magnifying-glass-plus text-4xl text-emerald-700 opacity-0 group-hover/processed:opacity-100 drop-shadow-sm transition-opacity"></i>
+                            </div>
                             <img src="./dpi100_layout_det_res_0.jpg" alt="处理后识别效果图" className="w-full h-full object-contain p-2 bg-white" />
                           </div>
 
@@ -1035,6 +1048,27 @@ if __name__ == "__main__":
                     </div>
                   </div>
                 )}
+
+                {/* --- 独立图片全屏放大弹窗 (Lightbox) --- */}
+                {zoomedImg && (
+                  <div 
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 backdrop-blur-sm p-4 cursor-zoom-out animation-fade-in"
+                    onClick={() => setZoomedImg(null)}
+                  >
+                    <button 
+                      className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
+                      onClick={() => setZoomedImg(null)}
+                    >
+                      <i className="ph-bold ph-x text-2xl"></i>
+                    </button>
+                    <img 
+                      src={zoomedImg} 
+                      className="max-w-full max-h-full object-contain rounded-xl shadow-2xl cursor-default" 
+                      alt="放大预览" 
+                      onClick={(e) => e.stopPropagation()} 
+                    />
+                  </div>
+                )}
               </main>
               
               {/* 滚动条与动画样式 */}
@@ -1054,11 +1088,11 @@ if __name__ == "__main__":
                   background: #484f58; 
                 }
                 .animation-fade-in {
-                  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                  animation: fadeIn 0.3s ease-out forwards;
                 }
                 @keyframes fadeIn {
-                  from { opacity: 0; transform: translateY(10px); }
-                  to { opacity: 1; transform: translateY(0); }
+                  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+                  to { opacity: 1; transform: translateY(0) scale(1); }
                 }
               `}} />
             </div>
