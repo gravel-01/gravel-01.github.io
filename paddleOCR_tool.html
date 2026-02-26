@@ -1,0 +1,1071 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Zap, FileBox, BrainCircuit, Settings2, Code2, Copy, CheckCircle2, 
+  Image as ImageIcon, Maximize, SunMedium, Grid, MonitorOff, BookOpen,
+  Info, Activity, AlertTriangle, ArrowRight, Layers, FileCode2, Terminal
+} from 'lucide-react';
+
+// --- 数据定义 ---
+const MODELS = {
+  ocr_v5: {
+    id: 'PP-OCRv5',
+    name: 'PP-OCRv5',
+    tag: '轻量极速',
+    icon: <Zap className="w-6 h-6 text-amber-500" />,
+    bg: 'from-amber-50 to-orange-50/50',
+    border: 'border-amber-200/50',
+    desc: '不足1亿参数的轻量级基础OCR。',
+    features: ['毫秒级极速响应', '支持极高并发 (QPS)', 'API调用成本全场最低'],
+    useCases: '海量历史清晰数据归档、移动端/边缘端实时扫码、车牌识别等纯文本“走量”业务。',
+  },
+  structure_v3: {
+    id: 'PP-StructureV3',
+    name: 'PP-StructureV3',
+    tag: '结构还原',
+    icon: <FileBox className="w-6 h-6 text-blue-500" />,
+    bg: 'from-blue-50 to-indigo-50/50',
+    border: 'border-blue-200/50',
+    desc: '轻量级层级化文档解析工具。',
+    features: ['低延迟、低成本', '极高性价比还原段落逻辑', '标准表格结构还原'],
+    useCases: '排版规范的数字原生PDF解析、高质量合同/研报扫描件的结构化提取。',
+  },
+  vl_1_5: {
+    id: 'PaddleOCR-VL-1.5',
+    name: 'PaddleOCR-VL-1.5',
+    tag: '全能旗舰',
+    icon: <BrainCircuit className="w-6 h-6 text-purple-500" />,
+    bg: 'from-purple-50 to-fuchsia-50/50',
+    border: 'border-purple-200/50',
+    desc: '0.9B参数的多任务视觉语言模型 (VLM)。',
+    features: ['SOTA级超高精度 (94.5%)', '抗恶劣干扰能力极强', '一步输出高保真 Markdown'],
+    useCases: '用户随手拍的畸变照片、科研文献高保真还原、大模型RAG高质量知识库构建。',
+  }
+};
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState('generator'); // 默认展示功能页
+  const [activeCodeTab, setActiveCodeTab] = useState('workflow'); // 默认展示总工作流
+  const [copied, setCopied] = useState(false);
+
+  // 官方独立 Demo 配置状态
+  const [officialDemoModel, setOfficialDemoModel] = useState('PP-OCRv5');
+  const [officialDemoMode, setOfficialDemoMode] = useState('sync');
+  const [copiedOfficial, setCopiedOfficial] = useState(false);
+
+  // 代码生成器配置状态
+  const [config, setConfig] = useState({
+    model: 'PaddleOCR-VL-1.5',
+    apiMode: 'sync',
+    enableResize: true,
+    maxSize: 1920,
+    enableDeskew: true,
+    enableClahe: true,
+    enableMoire: false,
+    enableDpi: true,
+    targetDpi: 100,
+  });
+
+  const handleCopy = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // ---- 动态组装官方 API Code (提取为独立函数) ----
+  const getOfficialDemoCode = (modelId, mode) => {
+    const isOcrV5 = modelId === 'PP-OCRv5';
+    const resultsKey = isOcrV5 ? 'ocrResults' : 'layoutParsingResults';
+
+    if (mode === 'sync') {
+      return `import base64
+import requests
+import os
+
+API_URL = "https://your-api-url.com/layout-parsing"
+TOKEN = "your_personal_token_here"
+OUTPUT_DIR = "output"
+
+def call_paddleocr_sync(file_path):
+    print(f"\\n正在调用云端同步 API: {file_path}")
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
+    with open(file_path, "rb") as file:
+        file_bytes = file.read()
+        file_data = base64.b64encode(file_bytes).decode("ascii")
+
+    headers = {
+        "Authorization": f"token {TOKEN}",
+        "Content-Type": "application/json"
+    }
+    
+    required_payload = {
+        "file": file_data,
+        "fileType": 1, # 1为图片, 0为PDF
+    }
+    
+    optional_payload = {
+        "useDocOrientationClassify": False,
+        "useDocUnwarping": False,
+        ${!isOcrV5 ? '"useChartRecognition": False,' : '"useTextlineOrientation": False,'}
+    }
+    
+    payload = {**required_payload, **optional_payload}
+
+    response = requests.post(API_URL, json=payload, headers=headers)
+    response.raise_for_status()
+    result = response.json().get("result", {})
+    
+${isOcrV5 ? `    # 解析 PP-OCRv5 结果
+    if "${resultsKey}" in result:
+        for i, res in enumerate(result["${resultsKey}"]):
+            print(res.get("prunedResult", ""))
+            
+            # 下载裁剪图
+            image_url = res.get("ocrImage")
+            if image_url:
+                img_response = requests.get(image_url)
+                if img_response.status_code == 200:
+                    filename = os.path.join(OUTPUT_DIR, f"output_{i}.jpg")
+                    with open(filename, "wb") as f:
+                        f.write(img_response.content)
+                    print(f"Image saved to: {filename}")` : `    # 解析版面分析结果并下载资源
+    if "${resultsKey}" in result:
+        for i, res in enumerate(result["${resultsKey}"]):
+            # 保存 Markdown
+            md_filename = os.path.join(OUTPUT_DIR, f"doc_{i}.md")
+            with open(md_filename, "w", encoding="utf-8") as md_file:
+                md_file.write(res.get("markdown", {}).get("text", ""))
+            print(f"Markdown document saved at {md_filename}")
+            
+            # 下载插图/公式切片
+            for img_path, img_url in res.get("markdown", {}).get("images", {}).items():
+                full_img_path = os.path.join(OUTPUT_DIR, img_path)
+                os.makedirs(os.path.dirname(full_img_path), exist_ok=True)
+                img_bytes = requests.get(img_url).content
+                with open(full_img_path, "wb") as img_file:
+                    img_file.write(img_bytes)
+                print(f"Image saved to: {full_img_path}")
+                
+            # 下载标记图
+            for img_name, img_url in res.get("outputImages", {}).items():
+                img_response = requests.get(img_url)
+                if img_response.status_code == 200:
+                    filename = os.path.join(OUTPUT_DIR, f"{img_name}_{i}.jpg")
+                    with open(filename, "wb") as f:
+                        f.write(img_response.content)
+                    print(f"Image saved to: {filename}")`}
+    return result
+
+if __name__ == "__main__":
+    test_file = "test_image.jpg" # 替换为你的本地图片路径
+    if os.path.exists(test_file):
+        call_paddleocr_sync(test_file)
+    else:
+        print(f"找不到测试文件: {test_file}")`;
+    } else {
+      return `import requests
+import os
+import time
+import json
+import sys
+
+JOB_URL = "https://paddleocr.aistudio-app.com/api/v2/ocr/jobs"
+TOKEN = "your_personal_token_here"
+MODEL = "${modelId}"
+OUTPUT_DIR = "output"
+
+def call_paddleocr_async(file_path):
+    print(f"\\nProcessing file: {file_path}")
+    headers = { "Authorization": f"bearer {TOKEN}" }
+    
+    optional_payload = {
+        "useDocOrientationClassify": False,
+        "useDocUnwarping": False,
+        ${!isOcrV5 ? '"useChartRecognition": False,' : '"useTextlineOrientation": False,'}
+    }
+    
+    data = {
+        "model": MODEL,
+        "optionalPayload": json.dumps(optional_payload)
+    }
+    
+    with open(file_path, "rb") as f:
+        files = {"file": f}
+        job_response = requests.post(JOB_URL, headers=headers, data=data, files=files)
+    
+    if job_response.status_code != 200:
+        print(f"Response content: {job_response.text}")
+        sys.exit(1)
+        
+    jobId = job_response.json()["data"]["jobId"]
+    print(f"Job submitted successfully. job id: {jobId}\\nStart polling for results")
+
+    jsonl_url = ""
+    while True:
+        job_result_response = requests.get(f"{JOB_URL}/{jobId}", headers=headers)
+        if job_result_response.status_code != 200:
+            time.sleep(5)
+            continue
+            
+        state = job_result_response.json()["data"]["state"]
+        if state == 'pending':
+            print("The current status of the job is pending")
+        elif state == 'running':
+            try:
+                progress = job_result_response.json()['data']['extractProgress']
+                print(f"Job running, total pages: {progress.get('totalPages')}, extracted: {progress.get('extractedPages')}")
+            except KeyError:
+                print("The current status of the job is running...")
+        elif state == 'done':
+            progress = job_result_response.json()['data'].get('extractProgress', {})
+            print(f"Job completed, extracted pages: {progress.get('extractedPages')}")
+            jsonl_url = job_result_response.json()['data']['resultUrl']['jsonUrl']
+            break
+        elif state == "failed":
+            error_msg = job_result_response.json()['data']['errorMsg']
+            print(f"Job failed, failure reason: {error_msg}")
+            sys.exit()
+            
+        time.sleep(5)
+        
+    # 下载并解析 jsonl 结果
+    if jsonl_url:
+        print("Downloading and parsing results...")
+        jsonl_response = requests.get(jsonl_url)
+        jsonl_response.raise_for_status()
+        lines = jsonl_response.text.strip().split('\\n')
+        
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
+        page_num = 0
+        
+        for line in lines:
+            line = line.strip()
+            if not line: continue
+            
+            result = json.loads(line).get("result", {})
+${isOcrV5 ? `            if "${resultsKey}" in result:
+                for i, res in enumerate(result["${resultsKey}"]):
+                    image_url = res.get("ocrImage")
+                    if image_url:
+                        img_response = requests.get(image_url)
+                        if img_response.status_code == 200:
+                            filename = os.path.join(OUTPUT_DIR, f"img_output_{page_num}.jpg")
+                            with open(filename, "wb") as f:
+                                f.write(img_response.content)
+                            print(f"Image saved to: {filename}")` : `            if "${resultsKey}" in result:
+                for i, res in enumerate(result["${resultsKey}"]):
+                    # 保存 Markdown
+                    md_filename = os.path.join(OUTPUT_DIR, f"doc_{page_num}.md")
+                    with open(md_filename, "w", encoding="utf-8") as md_file:
+                        md_file.write(res.get("markdown", {}).get("text", ""))
+                    print(f"Markdown document saved at {md_filename}")
+                    
+                    # 下载插图
+                    for img_path, img_url in res.get("markdown", {}).get("images", {}).items():
+                        full_img_path = os.path.join(OUTPUT_DIR, img_path)
+                        os.makedirs(os.path.dirname(full_img_path), exist_ok=True)
+                        img_bytes = requests.get(img_url).content
+                        with open(full_img_path, "wb") as img_file:
+                            img_file.write(img_bytes)
+                            
+                    # 下载标记图
+                    for img_name, img_url in res.get("outputImages", {}).items():
+                        img_response = requests.get(img_url)
+                        if img_response.status_code == 200:
+                            filename = os.path.join(OUTPUT_DIR, f"{img_name}_{page_num}.jpg")
+                            with open(filename, "wb") as f:
+                                f.write(img_response.content)`}
+            page_num += 1
+        print("All results parsed and saved!")
+
+if __name__ == "__main__":
+    test_file = "test_image.jpg" # 替换为你的本地图片路径
+    if os.path.exists(test_file):
+        call_paddleocr_async(test_file)
+    else:
+        print(f"找不到测试文件: {test_file}")`;
+    }
+  };
+
+  // ---- 代码块生成逻辑 ----
+  const codeBlocks = {
+    dpi: `from PIL import Image
+import cv2
+import numpy as np
+
+def get_image_dpi(file_path):
+    """读取图像文件的 DPI 元数据标签"""
+    try:
+        with Image.open(file_path) as img:
+            dpi = img.info.get('dpi')
+            if dpi:
+                return f"{int(dpi[0])} x {int(dpi[1])}"
+            return "未设置(系统默认)"
+    except Exception as e:
+        return f"读取失败:{e}"
+
+def resample_image_by_dpi(image_path, target_dpi=${config.targetDpi}, default_original_dpi=72):
+    """真正的 DPI 转换器:不仅修改标签,还会物理缩放像素矩阵。"""
+    with Image.open(image_path) as img:
+        orig_dpi_tuple = img.info.get('dpi')
+        original_dpi = orig_dpi_tuple[0] if orig_dpi_tuple else default_original_dpi
+        
+        scale_factor = target_dpi / original_dpi
+        if scale_factor == 1.0:
+            print(f" 原图已经是 {target_dpi} DPI,跳过重采样。")
+            return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+            
+        new_width = int(img.width * scale_factor)
+        new_height = int(img.height * scale_factor)
+        print(f" [物理DPI重采样]: {original_dpi} -> {target_dpi} DPI")
+        resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        return cv2.cvtColor(np.array(resized_img), cv2.COLOR_RGB2BGR)`,
+
+    resize: `import cv2
+
+def resize_image_for_paddle(image, max_side_len=${config.maxSize}):
+    """限制图像的最大边长,防止过大分辨率导致 Token 爆炸及模型幻觉。"""
+    h, w = image.shape[:2]
+    if max(h, w) > max_side_len:
+        if h > w:
+            new_h = max_side_len
+            new_w = int(w * (max_side_len / h))
+        else:
+            new_w = max_side_len
+            new_h = int(h * (max_side_len / w))
+        print(f" [极限尺寸截断]: ({w}x{h}) -> ({new_w}x{new_h})")
+        return cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    return image`,
+
+    deskew: `import cv2
+import numpy as np
+
+def deskew_image(image):
+    """利用 Canny 边缘检测和霍夫变换对图像进行轻量级倾斜校正。"""
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 50, 150, apertureSize=3)
+    lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 100, minLineLength=100, maxLineGap=10)
+    
+    if lines is not None:
+        angles = []
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
+            if -45 < angle < 45:
+                angles.append(angle)
+        
+        if angles:
+            median_angle = np.median(angles)
+            if abs(median_angle) > 0.5:
+                h, w = image.shape[:2]
+                center = (w // 2, h // 2)
+                M = cv2.getRotationMatrix2D(center, median_angle, 1.0)
+                rotated = cv2.warpAffine(image, M, (w, h), flags=cv2.INTER_CUBIC, 
+                                         borderMode=cv2.BORDER_CONSTANT, borderValue=(255, 255, 255))
+                print(f" [倾斜校正]:旋转了 {median_angle:.2f}度")
+                return rotated
+    print(" [倾斜校正]:未检测到明显倾斜")
+    return image`,
+
+    clahe: `import cv2
+
+def enhance_contrast_clahe(image):
+    """使用 CLAHE 增强图像局部对比度,拯救阴影文本。"""
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    cl = clahe.apply(l)
+    limg = cv2.merge((cl, a, b))
+    print("[光照增强]: CLAHE 对比度提升完成")
+    return cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)`,
+
+    moire: `import cv2
+
+def remove_moire_pattern(image):
+    """使用 3x3 高斯核对付屏幕翻拍造成的摩尔纹。"""
+    print(" [降噪处理]:已应用 3x3 高斯模糊,弱化屏幕摩尔纹")
+    return cv2.GaussianBlur(image, (3, 3), 0)`
+  };
+
+  // 生成最终的总工作流代码
+  const generateWorkflowCode = () => {
+    let code = `import base64
+import os
+import sys
+import requests
+import time
+import json
+import cv2
+import numpy as np
+from PIL import Image
+
+# ==========================================
+# 全局配置参数
+# ==========================================
+API_URL = "https://your-api-url.com/layout-parsing"
+JOB_URL = "https://paddleocr.aistudio-app.com/api/v2/ocr/jobs"
+TOKEN = "your_personal_token_here"
+PROCESSED_DIR = "processed_images"
+OUTPUT_DIR = "output"
+MODEL = "${config.model}"
+
+# ==========================================
+# 核心预处理算法模块集成
+# ==========================================
+`;
+    // 注入选中的模块代码（去掉重复的 import）
+    if (config.enableDpi) code += codeBlocks.dpi.replace(/import .*\n/g, '').replace(/from .*\n/g, '') + '\n';
+    if (config.enableResize) code += codeBlocks.resize.replace(/import .*\n/g, '').replace(/from .*\n/g, '') + '\n';
+    if (config.enableDeskew) code += codeBlocks.deskew.replace(/import .*\n/g, '').replace(/from .*\n/g, '') + '\n';
+    if (config.enableClahe) code += codeBlocks.clahe.replace(/import .*\n/g, '').replace(/from .*\n/g, '') + '\n';
+    if (config.enableMoire) code += codeBlocks.moire.replace(/import .*\n/g, '').replace(/from .*\n/g, '') + '\n';
+
+    const isOcrV5Wf = config.model === 'PP-OCRv5';
+    const resultsKeyWf = isOcrV5Wf ? 'ocrResults' : 'layoutParsingResults';
+
+    code += `
+# ==========================================
+# 预处理调度器 (Pipeline)
+# ==========================================
+def preprocess_image(input_path):
+    """执行完整的图像预处理端到端流水线"""
+    os.makedirs(PROCESSED_DIR, exist_ok=True)
+    base_name = os.path.basename(input_path)
+    output_path = os.path.join(PROCESSED_DIR, f"enhanced_{base_name}")
+    
+    print(f"\\n[Pipeline] 开始本地预处理图像: {input_path}")
+    
+    # 1. 图像读取与重采样
+    ${config.enableDpi ? `image = resample_image_by_dpi(input_path)` : `image = cv2.imread(input_path)\n    if image is None: raise ValueError("读取失败")`}
+    
+    # 2. 图像强化处理
+    ${config.enableResize ? `image = resize_image_for_paddle(image)` : `# 跳过尺寸限制`}
+    ${config.enableDeskew ? `image = deskew_image(image)` : `# 跳过倾斜校正`}
+    ${config.enableMoire ? `image = remove_moire_pattern(image)` : `# 跳过屏幕去噪`}
+    ${config.enableClahe ? `image = enhance_contrast_clahe(image)` : `# 跳过对比度增强`}
+
+    # 3. 保存最终结果与标签注入
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    pil_img = Image.fromarray(image_rgb)
+    ${config.enableDpi ? `pil_img.save(output_path, dpi=(${config.targetDpi}, ${config.targetDpi}))` : `pil_img.save(output_path)`}
+    
+    print(f"[Pipeline] 预处理完成!已保存至: {output_path}")
+    return output_path
+
+# ==========================================
+# 云端 API 调用模块 (集成工作流版)
+# ==========================================
+`;
+    
+    if (config.apiMode === 'sync') {
+        code += `def call_paddleocr_sync(file_path):
+    print(f"\\n[API] 正在发送至云端: {file_path}")
+    with open(file_path, "rb") as file:
+        file_data = base64.b64encode(file.read()).decode("ascii")
+
+    payload = {
+        "file": file_data,
+        "fileType": 1,
+        "useDocOrientationClassify": False,
+        "useDocUnwarping": False,
+        ${!isOcrV5Wf ? '"useChartRecognition": False,' : '"useTextlineOrientation": False,'}
+    }
+    
+    response = requests.post(API_URL, json=payload, headers={
+        "Authorization": f"token {TOKEN}",
+        "Content-Type": "application/json"
+    })
+    response.raise_for_status()
+    
+    result = response.json().get("result", {})
+    if "${resultsKeyWf}" in result:
+        print(f"\\n[解析成功] 提取到 {len(result['${resultsKeyWf}'])} 个数据块。详细解析落盘逻辑请参考上方的【官方 API Demo】。")
+    return result
+`;
+    } else {
+        code += `def call_paddleocr_async(file_path):
+    print(f"\\n[API] 正在提交异步任务: {file_path}")
+    headers = { "Authorization": f"bearer {TOKEN}" }
+    
+    optional_payload = {
+        "useDocOrientationClassify": False,
+        "useDocUnwarping": False,
+        ${!isOcrV5Wf ? '"useChartRecognition": False,' : '"useTextlineOrientation": False,'}
+    }
+    
+    with open(file_path, "rb") as f:
+        res = requests.post(JOB_URL, headers=headers, data={
+            "model": MODEL,
+            "optionalPayload": json.dumps(optional_payload)
+        }, files={"file": f})
+    
+    res.raise_for_status()
+    jobId = res.json()["data"]["jobId"]
+    print(f"[API] 任务提交成功，JobID: {jobId}\\n开始轮询...")
+
+    while True:
+        status_res = requests.get(f"{JOB_URL}/{jobId}", headers=headers)
+        if status_res.status_code != 200:
+            time.sleep(5)
+            continue
+            
+        state = status_res.json()["data"]["state"]
+        if state == 'done':
+            jsonl_url = status_res.json()['data']['resultUrl']['jsonUrl']
+            print(f"\\n[API] 任务完成！结果下载链接: {jsonl_url}")
+            print("详细的文件解析与落盘逻辑，请参考上方的【官方 API Demo】。")
+            return jsonl_url
+        elif state == "failed":
+            print(f"\\n[API] 任务失败")
+            sys.exit()
+        time.sleep(5)
+`;
+    }
+
+    code += `
+# ==========================================
+# 执行入口 (Main)
+# ==========================================
+if __name__ == "__main__":
+    test_file = "test_image.jpg" # 请替换为实际的测试图片路径
+    
+    if os.path.exists(test_file):
+        print(f"\\n{'='*50}\\n启动 OCR 图像增强与解析总工作流\\n{'='*50}")
+        # 1. 执行本地预处理
+        processed_file = preprocess_image(test_file)
+        # 2. 输送至大模型
+        ${config.apiMode === 'sync' ? `result = call_paddleocr_sync(processed_file)\n        print("\\n工作流彻底执行完毕！")` : `call_paddleocr_async(processed_file)\n        print("\\n工作流彻底执行完毕！")`}
+    else:
+        print(f"找不到测试文件: {test_file}")
+`;
+    return code;
+  };
+
+  // 动态计算目前可见的代码 Tabs
+  const visibleCodeTabs = [
+    { id: 'workflow', label: '总工作流调用', icon: <Terminal className="w-4 h-4" /> },
+    ...(config.enableDpi ? [{ id: 'dpi', label: 'DPI 重采样', icon: <ImageIcon className="w-4 h-4" /> }] : []),
+    ...(config.enableResize ? [{ id: 'resize', label: '尺寸截断', icon: <Maximize className="w-4 h-4" /> }] : []),
+    ...(config.enableDeskew ? [{ id: 'deskew', label: '倾斜校正', icon: <Grid className="w-4 h-4" /> }] : []),
+    ...(config.enableClahe ? [{ id: 'clahe', label: '对比度增强', icon: <SunMedium className="w-4 h-4" /> }] : []),
+    ...(config.enableMoire ? [{ id: 'moire', label: '去摩尔纹', icon: <MonitorOff className="w-4 h-4" /> }] : [])
+  ];
+
+  // 当关闭某个开关时，如果当前激活的 tab 正是那个模块，切回工作流
+  useEffect(() => {
+    if (!visibleCodeTabs.find(t => t.id === activeCodeTab)) {
+      setActiveCodeTab('workflow');
+    }
+  }, [config, activeCodeTab, visibleCodeTabs]);
+
+
+  const renderCodeContent = () => {
+    let rawCode = activeCodeTab === 'workflow' ? generateWorkflowCode() : codeBlocks[activeCodeTab];
+    return (
+      <pre className="text-[13px] text-slate-300 font-mono leading-relaxed whitespace-pre">
+        <code dangerouslySetInnerHTML={{ __html: highlightPython(rawCode) }} />
+      </pre>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans selection:bg-blue-200">
+      
+      {/* ================= 顶栏 ================= */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl shadow-inner shadow-white/20">
+                <BrainCircuit className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 tracking-tight">
+                  PaddleOCR 工具箱
+                </h1>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2 bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
+              <button
+                onClick={() => setActiveTab('guide')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 ${
+                  activeTab === 'guide' ? 'bg-white text-blue-600 shadow-sm ring-1 ring-slate-900/5' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'
+                }`}
+              >
+                <BookOpen className="w-4 h-4" /> 指南
+              </button>
+              <button
+                onClick={() => setActiveTab('generator')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 ${
+                  activeTab === 'generator' ? 'bg-white text-indigo-600 shadow-sm ring-1 ring-slate-900/5' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'
+                }`}
+              >
+                <Code2 className="w-4 h-4" /> 预处理工作流
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
+        
+        {/* ================= 标签页 1: 模型指南 ================= */}
+        {activeTab === 'guide' && (
+          <div className="space-y-8 animation-fade-in">
+            <div className="text-center max-w-2xl mx-auto mb-10">
+              <h2 className="text-3xl font-bold text-slate-900 tracking-tight mb-4">精准选型，事半功倍</h2>
+              <p className="text-slate-500 text-sm leading-relaxed">
+                在“任务复杂度”、“API预算”和“响应延迟”之间寻找最佳平衡点。明确需求：是简单提字，还是深度解析包含表格公式的复杂文档？选择最适合您场景的模型。
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {Object.values(MODELS).map(model => (
+                <div key={model.id} className={`bg-gradient-to-b ${model.bg} rounded-3xl p-6 border ${model.border} shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group hover:-translate-y-1`}>
+                  <div className="absolute top-4 right-4 bg-white/60 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-slate-700 border border-white/40 shadow-sm">
+                    {model.tag}
+                  </div>
+                  <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-5 border border-white/60">
+                    {model.icon}
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">{model.name}</h3>
+                  <p className="text-sm text-slate-600 min-h-[44px] leading-relaxed">{model.desc}</p>
+                  
+                  <div className="mt-6 space-y-5">
+                    <div>
+                      <p className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-3 flex items-center gap-2">
+                         <div className="w-3 h-px bg-slate-300"></div> 核心特性
+                      </p>
+                      <ul className="space-y-2.5">
+                        {model.features.map((feat, i) => (
+                          <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700 font-medium">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                            <span>{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="bg-white/50 rounded-xl p-4 border border-white/60 shadow-sm">
+                      <p className="text-xs font-bold text-slate-500 mb-1.5 flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5" /> 适用场景
+                      </p>
+                      <p className="text-xs text-slate-700 leading-relaxed font-medium">{model.useCases}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Token获取引导 */}
+             <div className="mt-8 bg-blue-50/50 border border-blue-100/50 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+              <div className="absolute -right-10 -top-10 w-40 h-40 bg-blue-400/10 rounded-full blur-3xl"></div>
+              <div className="relative z-10">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-2">
+                  <Activity className="w-5 h-5 text-blue-600" /> 准备开始接入？
+                </h3>
+                <p className="text-sm text-slate-600">你需要获取个人的 API Token 才能调用云端大模型接口。</p>
+              </div>
+               <a 
+                href="https://aistudio.baidu.com/paddleocr/task" 
+                target="_blank" 
+                rel="noreferrer"
+                className="relative z-10 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-6 py-3 rounded-xl transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2 whitespace-nowrap"
+              >
+                前往 AI Studio 获取 Token <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* ================= 标签页 2: 预处理代码生成 ================= */}
+        {activeTab === 'generator' && (
+          <div className="space-y-6 animation-fade-in">
+            
+            {/* ====== 数据对比看板 ====== */}
+            <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden mb-8">
+              <div className="bg-slate-50 border-b border-slate-200/60 px-5 py-3 flex items-center justify-between">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-indigo-500" />
+                  实战效果对比：为何需要预处理？
+                </h3>
+                <span className="text-xs font-medium bg-white px-2.5 py-1 rounded-md border border-slate-200 text-slate-500">
+                  测试图：手机翻拍歪斜错题图
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                {/* 未处理 */}
+                <div className="p-6 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-600 font-bold text-xs">X</span>
+                    <h4 className="font-bold text-slate-700">原生直传 (未处理)</h4>
+                  </div>
+                  
+                  {/* --- 预留位：未处理图片 --- */}
+                  <div className="w-full h-64 bg-slate-100/80 border border-slate-200 border-dashed rounded-xl mb-6 flex flex-col items-center justify-center text-slate-400 overflow-hidden relative group-hover:border-red-300 transition-colors">
+                    <ImageIcon className="w-8 h-8 mb-2 opacity-40 group-hover:text-red-400 transition-colors" />
+                    <span className="text-sm font-medium">预留展示位：歪斜/模糊的原图</span>
+                    <span className="text-[10px] text-slate-400 mt-1">替换下方注释代码即可展示</span>
+                    {/* 💡 开发者请在此处填入实际图片：
+                    <img src="your-raw-image-url.jpg" alt="未处理原图" className="absolute inset-0 w-full h-full object-contain p-2 bg-slate-50" /> 
+                    */}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white border border-red-100/50 p-3 rounded-xl shadow-sm">
+                      <p className="text-[11px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">输送分辨率</p>
+                      <p className="text-sm font-mono font-medium text-slate-800">1389 × 1239</p>
+                      <p className="text-xs text-slate-400 mt-0.5">像素总量: 172万</p>
+                    </div>
+                    <div className="bg-white border border-red-100/50 p-3 rounded-xl shadow-sm">
+                      <p className="text-[11px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">解析结果</p>
+                      <p className="text-sm font-mono font-medium text-slate-800">8,379 字符</p>
+                      <div className="mt-1 flex items-center gap-1 text-[11px] text-red-600 font-medium bg-red-50 py-0.5 px-1.5 rounded w-fit">
+                        <AlertTriangle className="w-3 h-3" /> 模型陷入死循环幻觉
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 处理后 */}
+                <div className="p-6 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 font-bold text-xs">✓</span>
+                      <h4 className="font-bold text-slate-700">标准预处理 (注入 72 DPI)</h4>
+                    </div>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold border border-emerald-100">推荐方案</span>
+                  </div>
+
+                  {/* --- 预留位：处理后图片 --- */}
+                  <div className="w-full h-64 bg-emerald-50/50 border border-emerald-200 border-dashed rounded-xl mb-6 flex flex-col items-center justify-center text-emerald-600/60 overflow-hidden relative group-hover:border-emerald-400 transition-colors">
+                    <ImageIcon className="w-8 h-8 mb-2 opacity-60 group-hover:text-emerald-500 transition-colors" />
+                    <span className="text-sm font-medium">预留展示位：摆正并带有OCR检测框的结果</span>
+                    <span className="text-[10px] text-emerald-600/50 mt-1">替换下方注释代码即可展示</span>
+                    {/* 💡 开发者请在此处填入实际图片：
+                    <img src="your-processed-image-url.jpg" alt="处理后图片" className="absolute inset-0 w-full h-full object-contain p-2 bg-white" /> 
+                    */}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white border border-emerald-100/50 p-3 rounded-xl shadow-sm">
+                      <p className="text-[11px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">重采样分辨率</p>
+                      <p className="text-sm font-mono font-medium text-slate-800">1389 × 1239</p>
+                      <p className="text-xs text-emerald-600 mt-0.5 font-medium">清晰度保留，DPI 规范化</p>
+                    </div>
+                    <div className="bg-white border border-emerald-100/50 p-3 rounded-xl shadow-sm">
+                      <p className="text-[11px] text-slate-400 font-semibold mb-1 uppercase tracking-wider">解析结果</p>
+                      <p className="text-sm font-mono font-medium text-slate-800">3,805 字符</p>
+                      <div className="mt-1 flex items-center gap-1 text-[11px] text-emerald-600 font-medium bg-emerald-50 py-0.5 px-1.5 rounded w-fit">
+                        <CheckCircle2 className="w-3 h-3" /> 52块版面精准还原
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ====== 官方基础 API 调用 Demo (独立模块) ====== */}
+            <div className="bg-[#0d1117] rounded-2xl shadow-xl overflow-hidden mb-8 border border-slate-800">
+              <div className="bg-[#161b22] border-b border-[#30363d] px-5 py-3 flex flex-wrap items-center justify-between gap-4">
+                <h3 className="font-bold text-slate-200 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-400" />
+                  官方原生 API 调用 Demo
+                </h3>
+                <div className="flex flex-wrap items-center gap-3">
+                  <select 
+                    value={officialDemoModel}
+                    onChange={(e) => setOfficialDemoModel(e.target.value)}
+                    className="bg-[#21262d] text-slate-300 border border-[#30363d] rounded text-xs px-2 py-1.5 outline-none focus:border-blue-500"
+                  >
+                    <option value="PP-OCRv5">PP-OCRv5</option>
+                    <option value="PP-StructureV3">PP-StructureV3</option>
+                    <option value="PaddleOCR-VL-1.5">PaddleOCR-VL-1.5</option>
+                  </select>
+                  <select 
+                    value={officialDemoMode}
+                    onChange={(e) => setOfficialDemoMode(e.target.value)}
+                    className="bg-[#21262d] text-slate-300 border border-[#30363d] rounded text-xs px-2 py-1.5 outline-none focus:border-blue-500"
+                  >
+                    <option value="sync">同步调用 (Sync)</option>
+                    <option value="async">异步调用 (Async)</option>
+                  </select>
+                  <button
+                    onClick={() => {
+                        navigator.clipboard.writeText(getOfficialDemoCode(officialDemoModel, officialDemoMode));
+                        setCopiedOfficial(true);
+                        setTimeout(() => setCopiedOfficial(false), 2000);
+                    }}
+                    className="ml-2 flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-[#21262d] hover:bg-[#30363d] px-3 py-1.5 rounded border border-[#363b42] transition-colors whitespace-nowrap"
+                  >
+                    {copiedOfficial ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    {copiedOfficial ? '已复制' : '复制代码'}
+                  </button>
+                </div>
+              </div>
+              <div className="p-5 overflow-auto custom-scrollbar max-h-[400px]">
+                <pre className="text-[13px] text-slate-300 font-mono leading-relaxed whitespace-pre">
+                  <code dangerouslySetInnerHTML={{ __html: highlightPython(getOfficialDemoCode(officialDemoModel, officialDemoMode)) }} />
+                </pre>
+              </div>
+            </div>
+
+            {/* ====== 工作流生成器主体 ====== */}
+            <div className="flex flex-col xl:flex-row gap-6">
+              
+              {/* 左侧配置面板 */}
+              <div className="xl:w-[420px] flex-shrink-0 flex flex-col gap-6">
+                
+                {/* 基础设定 */}
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                  <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <Settings2 className="w-5 h-5 text-indigo-500" /> 基础通道配置
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">选择模型引擎</label>
+                      <div className="relative">
+                        <select 
+                          value={config.model}
+                          onChange={(e) => setConfig({...config, model: e.target.value})}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none appearance-none transition-all"
+                        >
+                          <option value="PP-OCRv5">PP-OCRv5 (轻量极速)</option>
+                          <option value="PP-StructureV3">PP-StructureV3 (结构还原)</option>
+                          <option value="PaddleOCR-VL-1.5">PaddleOCR-VL-1.5 (全能旗舰)</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                          <Grid className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">API 通信模式</label>
+                      <div className="flex rounded-xl overflow-hidden border border-slate-200 bg-slate-50 p-1">
+                        <button 
+                          onClick={() => setConfig({...config, apiMode: 'sync'})}
+                          className={`flex-1 text-sm py-2 rounded-lg transition-all font-medium ${config.apiMode === 'sync' ? 'bg-white shadow border border-slate-200/50 text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/30'}`}
+                        >
+                          同步 (Sync)
+                        </button>
+                        <button 
+                          onClick={() => setConfig({...config, apiMode: 'async'})}
+                          className={`flex-1 text-sm py-2 rounded-lg transition-all font-medium ${config.apiMode === 'async' ? 'bg-white shadow border border-slate-200/50 text-indigo-600' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/30'}`}
+                        >
+                          异步 (Async)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 算法积木 */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex-1 flex flex-col overflow-hidden relative">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                  <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                      <FileCode2 className="w-5 h-5 text-emerald-500" /> 预处理流水线积木
+                    </h3>
+                    <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded uppercase tracking-wider">OpenCV/PIL</span>
+                  </div>
+                  
+                  <div className="p-3 space-y-2 flex-1 overflow-y-auto">
+                    {/* DPI Config */}
+                    <label className={`flex flex-col p-3.5 rounded-xl border transition-all cursor-pointer ${config.enableDpi ? 'bg-blue-50/30 border-blue-200 shadow-sm' : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}>
+                      <div className="flex items-start gap-3">
+                        <input 
+                          type="checkbox" 
+                          checked={config.enableDpi}
+                          onChange={(e) => setConfig({...config, enableDpi: e.target.checked})}
+                          className="mt-0.5 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <ImageIcon className={`w-4 h-4 ${config.enableDpi ? 'text-blue-600' : 'text-slate-400'}`} />
+                            <span className={`text-sm font-bold ${config.enableDpi ? 'text-slate-900' : 'text-slate-700'}`}>物理重采样与 DPI 注入</span>
+                          </div>
+                          <p className="text-xs text-slate-500">物理级像素缩放，统一物理打印标准，防止 PDF 排版错乱。</p>
+                        </div>
+                      </div>
+                      {config.enableDpi && (
+                         <div className="mt-3 ml-7 flex items-center gap-3 bg-white p-2.5 rounded-lg border border-blue-100">
+                           <span className="text-xs font-semibold text-slate-600">目标重采样 DPI:</span>
+                           <input 
+                            type="number" 
+                            value={config.targetDpi}
+                            onChange={(e) => setConfig({...config, targetDpi: parseInt(e.target.value) || 100})}
+                            className="w-24 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 text-sm font-mono outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                           />
+                         </div>
+                      )}
+                    </label>
+
+                    {/* Resize Config */}
+                    <label className={`flex flex-col p-3.5 rounded-xl border transition-all cursor-pointer ${config.enableResize ? 'bg-blue-50/30 border-blue-200 shadow-sm' : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}>
+                      <div className="flex items-start gap-3">
+                        <input 
+                          type="checkbox" 
+                          checked={config.enableResize}
+                          onChange={(e) => setConfig({...config, enableResize: e.target.checked})}
+                          className="mt-0.5 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Maximize className={`w-4 h-4 ${config.enableResize ? 'text-blue-600' : 'text-slate-400'}`} />
+                            <span className={`text-sm font-bold ${config.enableResize ? 'text-slate-900' : 'text-slate-700'}`}>极限尺寸截断</span>
+                          </div>
+                          <p className="text-xs text-slate-500">硬性限制最大边长，防止 4K 图撑爆显存 (OOM) 或 Token 爆炸。</p>
+                        </div>
+                      </div>
+                      {config.enableResize && (
+                         <div className="mt-3 ml-7 flex items-center gap-3 bg-white p-2.5 rounded-lg border border-blue-100">
+                           <span className="text-xs font-semibold text-slate-600">长边阈值(px):</span>
+                           <select 
+                            value={config.maxSize}
+                            onChange={(e) => setConfig({...config, maxSize: parseInt(e.target.value)})}
+                            className="flex-1 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 text-sm outline-none focus:border-blue-500"
+                           >
+                             <option value={1920}>1920 (复杂排版/多图表)</option>
+                             <option value={960}>960 (简单纯文本段落)</option>
+                           </select>
+                         </div>
+                      )}
+                    </label>
+
+                    {/* Deskew Config */}
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer ${config.enableDeskew ? 'bg-blue-50/30 border-blue-200 shadow-sm' : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}>
+                      <input type="checkbox" checked={config.enableDeskew} onChange={(e) => setConfig({...config, enableDeskew: e.target.checked})} className="mt-0.5 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Grid className={`w-4 h-4 ${config.enableDeskew ? 'text-blue-600' : 'text-slate-400'}`} />
+                          <span className={`text-sm font-bold ${config.enableDeskew ? 'text-slate-900' : 'text-slate-700'}`}>轻量级倾斜校正 (Deskew)</span>
+                        </div>
+                        <p className="text-xs text-slate-500">边缘检测+霍夫变换找直线。摆正图片，减轻云端模型生成倾斜包围盒的计算压力。</p>
+                      </div>
+                    </label>
+
+                    {/* CLAHE Config */}
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer ${config.enableClahe ? 'bg-blue-50/30 border-blue-200 shadow-sm' : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}>
+                      <input type="checkbox" checked={config.enableClahe} onChange={(e) => setConfig({...config, enableClahe: e.target.checked})} className="mt-0.5 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <SunMedium className={`w-4 h-4 ${config.enableClahe ? 'text-blue-600' : 'text-slate-400'}`} />
+                          <span className={`text-sm font-bold ${config.enableClahe ? 'text-slate-900' : 'text-slate-700'}`}>局部对比度增强 (CLAHE)</span>
+                        </div>
+                        <p className="text-xs text-slate-500">仅调整 LAB 亮度通道，完美拯救手机阴影遮挡、褪色印章等恶劣光照场景。</p>
+                      </div>
+                    </label>
+
+                    {/* Moiré Config */}
+                    <label className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer ${config.enableMoire ? 'bg-blue-50/30 border-blue-200 shadow-sm' : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}>
+                      <input type="checkbox" checked={config.enableMoire} onChange={(e) => setConfig({...config, enableMoire: e.target.checked})} className="mt-0.5 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <MonitorOff className={`w-4 h-4 ${config.enableMoire ? 'text-blue-600' : 'text-slate-400'}`} />
+                          <span className={`text-sm font-bold ${config.enableMoire ? 'text-slate-900' : 'text-slate-700'}`}>去除屏幕摩尔纹 (可选)</span>
+                        </div>
+                        <p className="text-xs text-slate-500">施加轻微的高斯模糊，打散电脑屏幕翻拍图的高频像素网格。</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* 右侧智能代码面板 */}
+              <div className="flex-1 flex flex-col bg-[#0d1117] rounded-2xl overflow-hidden shadow-2xl border border-slate-800 xl:h-[800px]">
+                
+                {/* 编辑器 Top Bar */}
+                <div className="bg-[#161b22] border-b border-[#30363d] pt-2 px-2 flex items-end justify-between overflow-x-auto custom-scrollbar">
+                  <div className="flex gap-1.5 flex-nowrap">
+                    {visibleCodeTabs.map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveCodeTab(tab.id)}
+                        className={`flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium rounded-t-lg transition-colors border-t border-x whitespace-nowrap ${
+                          activeCodeTab === tab.id 
+                            ? 'bg-[#0d1117] text-blue-400 border-[#30363d] border-b-transparent shadow-sm' 
+                            : 'bg-transparent text-slate-500 border-transparent hover:text-slate-300 hover:bg-[#21262d]'
+                        }`}
+                        style={{ marginBottom: activeCodeTab === tab.id ? '-1px' : '0' }}
+                      >
+                        {tab.icon} {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <div className="pb-2 pr-2 pl-4">
+                    <button
+                      onClick={() => handleCopy(activeCodeTab === 'workflow' ? generateWorkflowCode() : codeBlocks[activeCodeTab])}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-[#21262d] hover:bg-[#30363d] px-3 py-1.5 rounded border border-[#363b42] transition-colors whitespace-nowrap"
+                    >
+                      {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      {copied ? '已复制片段' : '复制当前片段'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* 编辑器 Content */}
+                <div className="flex-1 p-5 overflow-auto custom-scrollbar bg-[#0d1117]">
+                  {renderCodeContent()}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+      </main>
+      
+      {/* 滚动条与动画 */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #30363d; 
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #484f58; 
+        }
+        .animation-fade-in {
+          animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}} />
+    </div>
+  );
+}
+
+// 极其轻量的正则表达式语法高亮助手（模拟暗色主题风格）
+function highlightPython(code) {
+  let html = code
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;') // Escape HTML
+    // Comments
+    .replace(/(#.*)/g, '<span style="color: #8b949e; font-style: italic;">$1</span>')
+    // Strings
+    .replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, '<span style="color: #a5d6ff;">$&</span>')
+    // Triple Quotes (Docstrings)
+    .replace(/("""[\s\S]*?""")/g, '<span style="color: #8b949e;">$1</span>')
+    // Keywords
+    .replace(/\b(def|import|from|return|if|else|elif|try|except|with|as|while|break|True|False|None)\b/g, '<span style="color: #ff7b72; font-weight: bold;">$1</span>')
+    // Built-ins
+    .replace(/\b(print|int|max|abs|len|enumerate)\b/g, '<span style="color: #79c0ff;">$1</span>')
+    // Decorators / Method Calls implicitly
+    .replace(/(\.[a-zA-Z0-9_]+)/g, '<span style="color: #d2a8ff;">$1</span>')
+    // Numbers
+    .replace(/\b(\d+(\.\d+)?)\b/g, '<span style="color: #79c0ff;">$1</span>')
+    // Class/Function definitions
+    .replace(/def\s+([a-zA-Z_]\w*)/g, 'def <span style="color: #d2a8ff; font-weight: bold;">$1</span>');
+  return html;
+}
