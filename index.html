@@ -24,52 +24,55 @@
         /* 自定义平滑滚动和滚动条 */
         html { scroll-behavior: smooth; }
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
+        /* 升级版的毛玻璃拟物态 UI */
         .glass-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.5));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 1);
         }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-primary selection:text-white">
+<body class="bg-[#F4F7FB] text-slate-800 font-sans antialiased selection:bg-primary selection:text-white min-h-screen relative">
 
     <!-- 背景装饰 (氛围光晕) -->
     <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-        <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-blue-400/10 blur-[100px]"></div>
-        <div class="absolute top-[20%] -right-[10%] w-[30%] h-[50%] rounded-full bg-cyan-400/10 blur-[120px]"></div>
+        <div class="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] rounded-full bg-blue-400/20 blur-[120px]"></div>
+        <div class="absolute top-[20%] -right-[10%] w-[30%] h-[50%] rounded-full bg-cyan-400/20 blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] left-[20%] w-[50%] h-[40%] rounded-full bg-indigo-300/10 blur-[100px]"></div>
     </div>
 
     <!-- 顶部主视觉 / 头图区 -->
-    <div class="max-w-5xl mx-auto px-4 pt-10 pb-6 sm:px-6 lg:px-8">
-        <!-- 如果你有本地图片，可以将下面的 src 换成 ./image/Kinmen.jpg -->
-        <div class="w-full h-64 md:h-80 rounded-3xl overflow-hidden shadow-xl relative group">
-            <img src="https://images.unsplash.com/photo-1506477331477-33d5d8b3dc85?q=80&w=1200&h=400&auto=format&fit=crop" 
+    <div class="max-w-5xl mx-auto px-4 pt-12 pb-6 sm:px-6 lg:px-8">
+        <!-- 头图卡片 -->
+        <div class="w-full h-72 md:h-80 rounded-[2rem] overflow-hidden shadow-2xl shadow-blue-900/10 relative group border-[4px] border-white/60">
+            <img src="./image/Kinmen.jpg" 
                  alt="" 
-                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                 onerror="this.src='https://via.placeholder.com/1200x400/e2e8f0/64748b?text=Kinmen.jpg'" />
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
-            <div class="absolute bottom-6 left-8">
-                <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">Hi there, I'm gravel-01 👋</h1>
+                 class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                 onerror="this.src='https://images.unsplash.com/photo-1506477331477-33d5d8b3dc85?q=80&w=1200&h=400&auto=format&fit=crop'" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent"></div>
+            <div class="absolute bottom-8 left-8 md:left-10">
+                <h1 class="text-3xl md:text-5xl font-extrabold text-white mb-3 tracking-tight drop-shadow-md">Hi there, I'm gravel-01 👋</h1>
                 <!-- 打字机 SVG -->
-                <img src="https://readme-typing-svg.herokuapp.com/?lines=✨+Full+Stack+Developer;🚀+Open+Source+Enthusiast;🌱+Always+Learning+New+Things&font=Fira%20Code&width=500&height=30&color=36BCF7&size=20" alt="Typing SVG" class="h-6 md:h-8" />
+                <img src="https://readme-typing-svg.herokuapp.com/?lines=✨+Full+Stack+Developer;🚀+Open+Source+Enthusiast;🌱+Always+Learning+New+Things&font=Fira%20Code&width=500&height=30&color=36BCF7&size=20" alt="Typing SVG" class="h-6 md:h-8 opacity-90" />
             </div>
         </div>
 
         <!-- 社交链接 (Badges) -->
         <div class="flex flex-wrap items-center justify-center gap-4 mt-8">
-            <a href="https://github.com/gravle-01" target="_blank" class="hover:-translate-y-1 transition-transform">
-                <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" />
+            <a href="https://github.com/gravle-01" target="_blank" class="hover:-translate-y-1 transition-transform drop-shadow-sm">
+                <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" class="rounded-lg" />
             </a>
-            <a href="mailto:hdl0105@foxmail.com" class="hover:-translate-y-1 transition-transform">
-                <img src="https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Email" />
+            <a href="mailto:hdl0105@foxmail.com" class="hover:-translate-y-1 transition-transform drop-shadow-sm">
+                <img src="https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Email" class="rounded-lg" />
             </a>
-            <a href="https://linkedin.com/in/gravel-01" target="_blank" class="hover:-translate-y-1 transition-transform">
-                <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn" />
+            <a href="https://linkedin.com/in/gravel-01" target="_blank" class="hover:-translate-y-1 transition-transform drop-shadow-sm">
+                <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn" class="rounded-lg" />
             </a>
         </div>
     </div>
@@ -77,134 +80,125 @@
     <!-- 主体内容区 -->
     <main class="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <!-- 左侧栏：关于我 & 技术栈 -->
+        <!-- ================= 左侧栏：关于我 & 技术栈 ================= -->
         <div class="space-y-8 lg:col-span-1">
             
             <!-- 关于我 -->
-            <div class="glass-card rounded-2xl p-6">
-                <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <div class="glass-card rounded-[2rem] p-7 transition-all duration-300 hover:shadow-xl hover:shadow-blue-900/5">
+                <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-2">
                     <i class="ph-fill ph-user-circle text-primary text-2xl"></i> 关于我
                 </h3>
-                <ul class="space-y-4 text-sm text-slate-600">
-                    <li class="flex items-start gap-3">
-                        <span class="text-lg">🔭</span>
+                <ul class="space-y-4 text-sm text-slate-600 font-medium">
+                    <li class="flex items-start gap-3 bg-white/50 p-3 rounded-2xl border border-white shadow-sm">
+                        <span class="text-lg leading-none mt-0.5">🔭</span>
                         <p>我目前正在开发 <strong class="text-slate-800">City-Outskirts-Tour-Agent</strong>，一个简单的 React agent demo</p>
                     </li>
-                    <li class="flex items-start gap-3">
-                        <span class="text-lg">🌱</span>
-                        <p>我正在学习 <strong class="text-slate-800">RAG、LLM、RL</strong></p>
+                    <li class="flex items-start gap-3 bg-white/50 p-3 rounded-2xl border border-white shadow-sm">
+                        <span class="text-lg leading-none mt-0.5">🌱</span>
+                        <p>我正在深度学习 <strong class="text-slate-800">RAG、LLM、RL</strong></p>
                     </li>
-                    <li class="flex items-start gap-3">
-                        <span class="text-lg">👯</span>
-                        <p>希望能在这个方向进行协作：<strong class="text-slate-800">强化学习，Agent应用</strong></p>
+                    <li class="flex items-start gap-3 bg-white/50 p-3 rounded-2xl border border-white shadow-sm">
+                        <span class="text-lg leading-none mt-0.5">👯</span>
+                        <p>希望能在这个方向进行协作：<strong class="text-slate-800 text-primary">强化学习，Agent应用</strong></p>
                     </li>
-                    <li class="flex items-start gap-3">
-                        <span class="text-lg">📫</span>
-                        <p>如何联系我：<a href="mailto:hdl0105@foxmail.com" class="text-primary hover:underline font-medium">hdl0105@foxmail.com</a></p>
+                    <li class="flex items-start gap-3 bg-white/50 p-3 rounded-2xl border border-white shadow-sm">
+                        <span class="text-lg leading-none mt-0.5">📫</span>
+                        <p>联系我：<a href="mailto:hdl0105@foxmail.com" class="text-primary hover:underline font-bold">hdl0105@foxmail.com</a></p>
                     </li>
                 </ul>
             </div>
 
             <!-- 技术栈 -->
-            <div class="glass-card rounded-2xl p-6">
-                <h3 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <div class="glass-card rounded-[2rem] p-7 transition-all duration-300 hover:shadow-xl hover:shadow-blue-900/5">
+                <h3 class="text-xl font-extrabold text-slate-800 mb-5 flex items-center gap-2">
                     <i class="ph-fill ph-code text-primary text-2xl"></i> 技术栈
                 </h3>
-                <div class="flex flex-wrap gap-2">
-                    <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white" alt="Python" class="h-6 hover:scale-105 transition-transform" />
-                    <img src="https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black" alt="React" class="h-6 hover:scale-105 transition-transform" />
-                    <img src="https://img.shields.io/badge/RL-F05032?style=flat&logo=git&logoColor=white" alt="RL" class="h-6 hover:scale-105 transition-transform" />
-                    <img src="https://img.shields.io/badge/Flask-F05030?style=flat&logo=flask&logoColor=white" alt="Flask" class="h-6 hover:scale-105 transition-transform" />
+                <div class="flex flex-wrap gap-2.5">
+                    <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" class="h-6 hover:-translate-y-1 transition-transform rounded" />
+                    <img src="https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React" class="h-6 hover:-translate-y-1 transition-transform rounded" />
+                    <img src="https://img.shields.io/badge/RL-F05032?style=flat-square&logo=git&logoColor=white" alt="RL" class="h-6 hover:-translate-y-1 transition-transform rounded" />
+                    <img src="https://img.shields.io/badge/Flask-F05030?style=flat-square&logo=flask&logoColor=white" alt="Flask" class="h-6 hover:-translate-y-1 transition-transform rounded" />
                 </div>
             </div>
         </div>
 
-        <!-- 右侧栏：核心项目展示 & GitHub 数据 -->
+        <!-- ================= 右侧栏：核心项目展示 (宽屏横排) ================= -->
         <div class="space-y-8 lg:col-span-2">
             
-            <!-- ====== 重点：项目展示区 ====== -->
-            <div>
-                <h2 class="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <i class="ph-fill ph-rocket-launch text-primary text-3xl"></i> 个人开发与开源项目
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex items-center gap-3 mb-2 px-2">
+                <i class="ph-fill ph-rocket-launch text-primary text-3xl"></i>
+                <h2 class="text-2xl font-extrabold text-slate-800">个人开发与开源项目</h2>
+            </div>
+
+            <div class="flex flex-col gap-6">
+                
+                <!-- 项目 1: PaddleOCR 工具 (横向卡片) -->
+                <div class="glass-card rounded-[2rem] hover:shadow-xl hover:shadow-blue-900/10 transition-all duration-300 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 relative overflow-hidden group">
+                    <!-- 左侧彩色光带 -->
+                    <div class="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-blue-400 to-indigo-500 opacity-80"></div>
                     
-                    <!-- 项目 1: PaddleOCR 工具 -->
-                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col group relative">
-                        <!-- 装饰渐变边框 -->
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-indigo-500"></div>
-                        <div class="p-6 flex-1">
-                            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                <i class="ph-fill ph-image-square text-2xl"></i>
-                            </div>
-                            <h3 class="text-lg font-bold text-slate-900 mb-2">PaddleOCR 预处理助手</h3>
-                            <p class="text-sm text-slate-500 leading-relaxed">
-                                为开发者量身定制的单页面小工具。包含模型选型指南，以及强大的自动化图片预处理（DPI重采样、倾斜校正、去摩尔纹）端到端 Python 代码生成器。
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                <span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded font-medium">React</span>
-                                <span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded font-medium">OpenCV / PIL</span>
-                            </div>
-                        </div>
-                        <div class="p-4 border-t border-slate-50 bg-slate-50/50">
-                            <!-- 点击跳转路由: paddleOCR_tool.html -->
-                            <a href="paddleOCR_tool.html" class="flex items-center justify-center w-full gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
-                                体验工具 <i class="ph-bold ph-arrow-right"></i>
-                            </a>
+                    <!-- 图标区 -->
+                    <div class="w-16 h-16 shrink-0 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500 shadow-sm border border-blue-100/50">
+                        <i class="ph-fill ph-image-square text-3xl"></i>
+                    </div>
+
+                    <!-- 内容区 -->
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">PaddleOCR 预处理助手</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                            为开发者量身定制的单页面辅助工具。内置 OCR 模型选型指南，并提供自动化图片预处理（DPI重采样、倾斜校正、去摩尔纹）的端到端 Python 代码生成器，有效解决模型大图报错、幻觉及排版错乱问题。
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2.5 py-1 bg-white border border-slate-200 text-slate-500 text-xs rounded-lg font-bold shadow-sm">React</span>
+                            <span class="px-2.5 py-1 bg-white border border-slate-200 text-slate-500 text-xs rounded-lg font-bold shadow-sm">OpenCV / PIL</span>
                         </div>
                     </div>
 
-                    <!-- 项目 2: 智能面试 Agent -->
-                    <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col group relative">
-                        <!-- 装饰渐变边框 -->
-                        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-fuchsia-500"></div>
-                        <div class="p-6 flex-1">
-                            <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                                <i class="ph-fill ph-robot text-2xl"></i>
-                            </div>
-                            <h3 class="text-lg font-bold text-slate-900 mb-2">智能面试 Agent</h3>
-                            <p class="text-sm text-slate-500 leading-relaxed">
-                                结合 LLM 与 RAG 技术的个人开源项目应用。模拟真实的面试交互环境，通过 Agent 提供智能问答、多轮对话流转，探索 AI 在垂直场景中的落地。
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-2">
-                                <span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded font-medium">LLM / RAG</span>
-                                <span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded font-medium">Agent 架构</span>
-                            </div>
-                        </div>
-                        <div class="p-4 border-t border-slate-50 bg-slate-50/50">
-                            <!-- 点击跳转路由: proview.html -->
-                            <a href="proview.html" class="flex items-center justify-center w-full gap-2 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm">
-                                查看项目 <i class="ph-bold ph-arrow-right"></i>
-                            </a>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- GitHub 数据统计 -->
-            <div class="glass-card rounded-2xl p-6">
-                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <i class="ph-fill ph-chart-line-up text-primary text-2xl"></i> GitHub 统计
-                </h3>
-                <div class="space-y-4">
-                    <!-- Activity Graph -->
-                    <div class="w-full overflow-hidden rounded-xl border border-slate-200/60 bg-white">
-                        <img class="w-full object-cover" src="https://github-readme-activity-graph.vercel.app/graph?username=gravel-01&theme=react" alt="gravel-01's github activity graph" />
-                    </div>
-                    <!-- Stats Card -->
-                    <div class="w-full flex justify-center mt-4">
-                        <img class="max-w-full h-auto rounded-xl shadow-sm border border-slate-200/60" src="https://github-readme-stats.vercel.app/api?username=gravel-01&show_icons=true&theme=react" alt="gravel-01's GitHub stats" />
+                    <!-- 按钮区 -->
+                    <div class="w-full sm:w-auto sm:pl-6 sm:border-l border-slate-200/60 shrink-0 flex items-center justify-center pt-2 sm:pt-0">
+                        <a href="paddleOCR_tool.html" class="flex items-center justify-center w-full sm:w-auto gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-0.5">
+                            体验工具 <i class="ph-bold ph-arrow-right text-base"></i>
+                        </a>
                     </div>
                 </div>
-            </div>
 
+                <!-- 项目 2: 智能面试 Agent (横向卡片) -->
+                <div class="glass-card rounded-[2rem] hover:shadow-xl hover:shadow-purple-900/10 transition-all duration-300 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-6 relative overflow-hidden group">
+                    <!-- 左侧彩色光带 -->
+                    <div class="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-purple-400 to-fuchsia-500 opacity-80"></div>
+                    
+                    <!-- 图标区 -->
+                    <div class="w-16 h-16 shrink-0 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500 shadow-sm border border-purple-100/50">
+                        <i class="ph-fill ph-robot text-3xl"></i>
+                    </div>
+
+                    <!-- 内容区 -->
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">智能面试 Agent</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                            结合 LLM 与 RAG 技术的开源实践项目。高度模拟真实的面试交互环境，通过 Agent 架构提供拟人化的智能问答与多轮对话流转，支持知识库追问，探索大模型在垂直人资场景中的落地潜力。
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2.5 py-1 bg-white border border-slate-200 text-slate-500 text-xs rounded-lg font-bold shadow-sm">LLM / RAG</span>
+                            <span class="px-2.5 py-1 bg-white border border-slate-200 text-slate-500 text-xs rounded-lg font-bold shadow-sm">Agent 架构</span>
+                        </div>
+                    </div>
+
+                    <!-- 按钮区 -->
+                    <div class="w-full sm:w-auto sm:pl-6 sm:border-l border-slate-200/60 shrink-0 flex items-center justify-center pt-2 sm:pt-0">
+                        <a href="proview.html" class="flex items-center justify-center w-full sm:w-auto gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:-translate-y-0.5">
+                            查看项目 <i class="ph-bold ph-arrow-right text-base"></i>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </main>
 
     <!-- 页脚 -->
-    <footer class="text-center py-8 text-slate-400 text-sm">
-        <p>© 2024 gravel-01. Keep building, keep learning.</p>
+    <footer class="max-w-5xl mx-auto px-4 py-8 mt-10 text-center border-t border-slate-200/60">
+        <p class="text-slate-400 text-sm font-medium tracking-wide">© 2024 gravel-01. Keep building, keep learning.</p>
     </footer>
 
 </body>
