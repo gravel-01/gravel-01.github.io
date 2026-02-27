@@ -71,13 +71,15 @@
           const [officialDemoMode, setOfficialDemoMode] = useState('sync');
           const [copiedOfficial, setCopiedOfficial] = useState(false);
 
-          // 新增：图片放大 (Lightbox) 状态
+          // 图片放大 (Lightbox) 状态
           const [zoomedImg, setZoomedImg] = useState(null);
 
           // 代码生成器配置状态
           const [config, setConfig] = useState({
             model: 'PaddleOCR-VL-1.5',
             apiMode: 'sync',
+            apiUrl: '',
+            apiToken: '',
             enableResize: true,
             maxSize: 1920,
             enableDeskew: true,
@@ -96,14 +98,16 @@
           const getOfficialDemoCode = (modelId, mode) => {
             const isOcrV5 = modelId === 'PP-OCRv5';
             const resultsKey = isOcrV5 ? 'ocrResults' : 'layoutParsingResults';
+            const safeToken = config.apiToken.trim() || 'your_personal_token_here';
+            const safeApiUrl = config.apiUrl.trim() || 'https://your-api-url.com/layout-parsing';
 
             if (mode === 'sync') {
               return `import base64
 import requests
 import os
 
-API_URL = "https://your-api-url.com/layout-parsing"
-TOKEN = "your_personal_token_here"
+API_URL = "${safeApiUrl}"
+TOKEN = "${safeToken}"
 OUTPUT_DIR = "output"
 
 def call_paddleocr_sync(file_path):
@@ -191,7 +195,7 @@ import json
 import sys
 
 JOB_URL = "https://paddleocr.aistudio-app.com/api/v2/ocr/jobs"
-TOKEN = "your_personal_token_here"
+TOKEN = "${safeToken}"
 MODEL = "${modelId}"
 OUTPUT_DIR = "output"
 
@@ -408,28 +412,32 @@ def remove_moire_pattern(image):
           };
 
           const generateWorkflowCode = () => {
+            const safeToken = config.apiToken.trim() || 'your_personal_token_here';
+            const safeApiUrl = config.apiUrl.trim() || 'https://your-api-url.com/layout-parsing';
+
             let code = `import base64
 import os
 import sys
 import requests
 import time
 import json
+import re
 import cv2
 import numpy as np
 from PIL import Image
 
 # ==========================================
-# 全局配置参数
+# ⚙️ 全局配置参数
 # ==========================================
-API_URL = "https://your-api-url.com/layout-parsing"
+API_URL = "${safeApiUrl}"
 JOB_URL = "https://paddleocr.aistudio-app.com/api/v2/ocr/jobs"
-TOKEN = "your_personal_token_here"
+TOKEN = "${safeToken}"
 PROCESSED_DIR = "processed_images"
 OUTPUT_DIR = "output"
 MODEL = "${config.model}"
 
 # ==========================================
-# 核心预处理算法模块集成
+# 🧰 核心预处理算法模块集成
 # ==========================================
 `;
             if (config.enableDpi) code += codeBlocks.dpi.replace(/import .*\n/g, '').replace(/from .*\n/g, '') + '\n';
@@ -443,7 +451,7 @@ MODEL = "${config.model}"
 
             code += `
 # ==========================================
-# 预处理调度器 (Pipeline)
+# 🧰 预处理调度器 (Pipeline)
 # ==========================================
 def preprocess_image(input_path):
     """执行完整的图像预处理端到端流水线"""
@@ -451,13 +459,13 @@ def preprocess_image(input_path):
     base_name = os.path.basename(input_path)
     output_path = os.path.join(PROCESSED_DIR, f"enhanced_{base_name}")
     
-    print(f"\\n[Pipeline] 开始本地预处理图像: {input_path}")
+    print(f"\\n[1/3] 🖼️ 开始本地预处理图像: {input_path}")
     
     # 1. 图像读取与重采样
-    ${config.enableDpi ? `image = resample_image_by_dpi(input_path)` : `image = cv2.imread(input_path)\n    if image is None: raise ValueError("读取失败")`}
+    ${config.enableDpi ? `image = resample_image_by_dpi(input_path, target_dpi=${config.targetDpi})` : `image = cv2.imread(input_path)\n    if image is None: raise ValueError("读取失败")`}
     
     # 2. 图像强化处理
-    ${config.enableResize ? `image = resize_image_for_paddle(image)` : `# 跳过尺寸限制`}
+    ${config.enableResize ? `image = resize_image_for_paddle(image, max_side_len=${config.maxSize})` : `# 跳过尺寸限制`}
     ${config.enableDeskew ? `image = deskew_image(image)` : `# 跳过倾斜校正`}
     ${config.enableMoire ? `image = remove_moire_pattern(image)` : `# 跳过屏幕去噪`}
     ${config.enableClahe ? `image = enhance_contrast_clahe(image)` : `# 跳过对比度增强`}
@@ -467,42 +475,66 @@ def preprocess_image(input_path):
     pil_img = Image.fromarray(image_rgb)
     ${config.enableDpi ? `pil_img.save(output_path, dpi=(${config.targetDpi}, ${config.targetDpi}))` : `pil_img.save(output_path)`}
     
-    print(f"[Pipeline] 预处理完成!已保存至: {output_path}")
+    file_size_kb = os.path.getsize(output_path) / 1024
+    print(f"  ✅ 预处理完成! 已保存至: {output_path} (大小: {file_size_kb:.2f} KB)")
     return output_path
 
 # ==========================================
-# 云端 API 调用模块 (集成工作流版)
+# 🧰 云端 API 调用与结果解析模块
 # ==========================================
+def get_file_type(file_path):
+    """文件类型识别器"""
+    ext = os.path.splitext(file_path)[-1].lower()
+    if ext == ".pdf":
+        return 0
+    elif ext in [".jpg", ".jpeg", ".png", ".bmp", ".webp"]:
+        return 1
+    else:
+        raise ValueError(f"不支持的文件格式: {ext}")
 `;
             
             if (config.apiMode === 'sync') {
                 code += `def call_paddleocr_sync(file_path):
-    print(f"\\n[API] 正在发送至云端: {file_path}")
+    print(f"\\n[2/3] 🚀 正在长连接调用云端 API...")
+    file_type = get_file_type(file_path)
     with open(file_path, "rb") as file:
         file_data = base64.b64encode(file.read()).decode("ascii")
 
     payload = {
         "file": file_data,
-        "fileType": 1,
+        "fileType": file_type,
         "useDocOrientationClassify": False,
         "useDocUnwarping": False,
         ${!isOcrV5Wf ? '"useChartRecognition": False,' : '"useTextlineOrientation": False,'}
     }
     
+    start_time = time.perf_counter()
     response = requests.post(API_URL, json=payload, headers={
         "Authorization": f"token {TOKEN}",
         "Content-Type": "application/json"
     })
     response.raise_for_status()
+    api_latency = time.perf_counter() - start_time
     
-    result = response.json().get("result", {})
-    if "${resultsKeyWf}" in result:
-        print(f"\\n[解析成功] 提取到 {len(result['${resultsKeyWf}'])} 个数据块。详细解析落盘逻辑请参考上方的【官方 API Demo】。")
-    return result
+    result_data = response.json()
+    
+    # 构建用于日志保存的精简数据（剔除长图 Base64）
+    light_data = json.loads(json.dumps(result_data)) 
+    if "result" in light_data and "${resultsKeyWf}" in light_data["result"]:
+        for res in light_data["result"]["${resultsKeyWf}"]:
+            if "markdown" in res and "images" in res["markdown"]:
+                res["markdown"]["images"] = "<图片链接数据已隐藏>"
+            if "outputImages" in res:
+                res["outputImages"] = "<标记图链接数据已隐藏>"
+            if "markdown" in res and "text" in res["markdown"]:
+                text_len = len(res["markdown"]["text"])
+                res["markdown"]["text"] = f"<识别到的 Markdown 文本长度: {text_len} 字符。为方便分析已折叠>"
+                
+    return light_data, api_latency, result_data
 `;
             } else {
                 code += `def call_paddleocr_async(file_path):
-    print(f"\\n[API] 正在提交异步任务: {file_path}")
+    print(f"\\n[2/3] 🚀 正在提交异步任务...")
     headers = { "Authorization": f"bearer {TOKEN}" }
     
     optional_payload = {
@@ -511,6 +543,7 @@ def preprocess_image(input_path):
         ${!isOcrV5Wf ? '"useChartRecognition": False,' : '"useTextlineOrientation": False,'}
     }
     
+    start_time = time.perf_counter()
     with open(file_path, "rb") as f:
         res = requests.post(JOB_URL, headers=headers, data={
             "model": MODEL,
@@ -521,6 +554,7 @@ def preprocess_image(input_path):
     jobId = res.json()["data"]["jobId"]
     print(f"[API] 任务提交成功，JobID: {jobId}\\n开始轮询...")
 
+    jsonl_url = ""
     while True:
         status_res = requests.get(f"{JOB_URL}/{jobId}", headers=headers)
         if status_res.status_code != 200:
@@ -531,28 +565,174 @@ def preprocess_image(input_path):
         if state == 'done':
             jsonl_url = status_res.json()['data']['resultUrl']['jsonUrl']
             print(f"\\n[API] 任务完成！结果下载链接: {jsonl_url}")
-            print("详细的文件解析与落盘逻辑，请参考上方的【官方 API Demo】。")
-            return jsonl_url
+            break
         elif state == "failed":
             print(f"\\n[API] 任务失败")
             sys.exit()
         time.sleep(5)
+        
+    api_latency = time.perf_counter() - start_time
+    
+    # 下载并重组 JSONL 结果
+    result_data = {"result": {"${resultsKeyWf}": []}}
+    if jsonl_url:
+        jsonl_response = requests.get(jsonl_url)
+        jsonl_response.raise_for_status()
+        lines = jsonl_response.text.strip().split('\\n')
+        for line in lines:
+            if not line.strip(): continue
+            line_data = json.loads(line).get("result", {})
+            if "${resultsKeyWf}" in line_data:
+                result_data["result"]["${resultsKeyWf}"].extend(line_data["${resultsKeyWf}"])
+                
+    # 构建精简日志数据
+    light_data = json.loads(json.dumps(result_data)) 
+    if "result" in light_data and "${resultsKeyWf}" in light_data["result"]:
+        for res in light_data["result"]["${resultsKeyWf}"]:
+            if "markdown" in res and "images" in res["markdown"]:
+                res["markdown"]["images"] = "<图片链接数据已隐藏>"
+            if "outputImages" in res:
+                res["outputImages"] = "<标记图链接数据已隐藏>"
+            if "markdown" in res and "text" in res["markdown"]:
+                text_len = len(res["markdown"]["text"])
+                res["markdown"]["text"] = f"<识别到的 Markdown 文本长度: {text_len} 字符。为方便分析已折叠>"
+                
+    return light_data, api_latency, result_data
 `;
             }
 
             code += `
+def analyze_and_save(original_file_path, api_target_file, light_data, api_latency, raw_data, suffix="", save_log=False):
+    """解析核心指标并下载所有相关 Markdown、插图"""
+    print(f"\\n[3/3] 📊 分析并提取返回资源...")
+    base_name = os.path.splitext(os.path.basename(original_file_path))[0]
+    if suffix:
+        base_name = f"{base_name}_{suffix}"
+        
+    test_output_dir = os.path.join(OUTPUT_DIR, base_name)
+    os.makedirs(test_output_dir, exist_ok=True)
+
+    if save_log:
+        log_file_path = os.path.join(test_output_dir, "api_analysis.log")
+        with open(log_file_path, "w", encoding="utf-8") as log_file:
+            json.dump(light_data, log_file, ensure_ascii=False, indent=2)
+        print(f"  💾 [日志输出]: 精简分析日志已保存至 {log_file_path}")
+    else:
+        print(f"  🚫 [日志输出]: 已配置为关闭，跳过生成 .log 文件")
+
+    # 1. 打印核心指标面板
+    try:
+        res = light_data.get('result', {})
+        layout_results = res.get('${resultsKeyWf}', [{}])[0]
+        width = res.get('dataInfo', {}).get('width', 0)
+        height = res.get('dataInfo', {}).get('height', 0)
+        num_blocks = len(layout_results.get('prunedResult', {}).get('parsing_res_list', [])) if '${resultsKeyWf}' == 'layoutParsingResults' else len(res.get('${resultsKeyWf}', []))
+        
+        text_content = layout_results.get('markdown', {}).get('text', '')
+        match = re.search(r'长度: (\\d+) 字符', text_content)
+        text_length = int(match.group(1)) if match else len(text_content)
+        
+        # 安全读取 DPI
+        try:
+            actual_dpi = get_image_dpi(api_target_file) if get_file_type(api_target_file) == 1 else "PDF 无固定 DPI"
+        except Exception:
+            actual_dpi = "未知"
+
+        print("\\n" + "="*50)
+        print(f"💡 【本次 OCR 解析核心数据面板 - {suffix.upper()}】")
+        print("="*50)
+        print(f"⏱️ 总耗时 (含网络) : {api_latency:.2f} 秒")
+        print(f"🖨️ 图像内嵌 DPI   : {actual_dpi}")
+        print(f"📐 最终输送分辨率 : {width} x {height} ({width*height/10000:.0f}万像素)")
+        print(f"🧩 检测出有效区块 : {num_blocks} 块")
+        print(f"📝 生成 Markdown  : {text_length} 个字符")
+        print("="*50)
+    except Exception as e:
+        pass 
+
+    # 2. 下载所有实体资源
+    print(f"\\n  ⬇️ 开始下载并保存解析资源到 {test_output_dir} ...")
+    if "result" in raw_data and "${resultsKeyWf}" in raw_data["result"]:
+        for i, res in enumerate(raw_data["result"]["${resultsKeyWf}"]):
+            md_filename = os.path.join(test_output_dir, f"doc_{i}.md" if '${resultsKeyWf}' == 'layoutParsingResults' else f"doc_{i}.txt")
+            with open(md_filename, "w", encoding="utf-8") as md_file:
+                text_to_save = res.get("markdown", {}).get("text", "") if '${resultsKeyWf}' == 'layoutParsingResults' else str(res.get("prunedResult", ""))
+                md_file.write(text_to_save)
+            
+            # 下载 Markdown 内嵌公式与切片图 (仅结构化模型)
+            for img_path, img_url in res.get("markdown", {}).get("images", {}).items():
+                try:
+                    full_img_path = os.path.join(test_output_dir, img_path)
+                    os.makedirs(os.path.dirname(full_img_path), exist_ok=True)
+                    img_bytes = requests.get(img_url).content
+                    with open(full_img_path, "wb") as img_file:
+                        img_file.write(img_bytes)
+                except Exception:
+                    pass
+                    
+            # 下载版面大图或裁剪图
+            images_dict = res.get("outputImages", {}) if "outputImages" in res else ({"ocrImage": res.get("ocrImage")} if res.get("ocrImage") else {})
+            for img_name, img_url in images_dict.items():
+                try:
+                    img_response = requests.get(img_url)
+                    if img_response.status_code == 200:
+                        filename = os.path.join(test_output_dir, f"{img_name}_{i}.jpg")
+                        with open(filename, "wb") as f:
+                            f.write(img_response.content)
+                except Exception:
+                    pass
+    print(f"  ✅ 所有资源保存完毕！")
+
 # ==========================================
-# 执行入口 (Main)
+# 🚀 最终运行入口
 # ==========================================
+def run_pipeline(file_path, use_preprocessing=True, target_dpi=72, is_screen_capture=False, save_log=False):
+    """端到端总控调度"""
+    print(f"\\n{'#'*65}")
+    mode_str = f"带预处理 (真实重采样至 {target_dpi} DPI)" if use_preprocessing else "原生直传 (保留原图像素)"
+    print(f"🏁 启动端到端测试任务 [{mode_str}]: {file_path}")
+    print(f"{'#'*65}")
+    
+    if not os.path.exists(file_path):
+        print(f"❌ 文件不存在: {file_path}")
+        return
+
+    if get_file_type(file_path) == 1: 
+        if use_preprocessing:
+            api_target_file = preprocess_image(file_path)
+            suffix = f"real_processed_{target_dpi}dpi" 
+        else:
+            print(f"\\n[1/3] ⏩ 跳过预处理，使用原图直传...")
+            api_target_file = file_path
+            suffix = "raw" 
+    else: 
+        print(f"\\n[1/3] 📄 检测到 PDF 文件，跳过图像预处理...")
+        api_target_file = file_path
+        suffix = "raw"
+        
+    try:
+        ${config.apiMode === 'sync' ? 'light_log, latency, raw_json = call_paddleocr_sync(api_target_file)' : 'light_log, latency, raw_json = call_paddleocr_async(api_target_file)'}
+    except Exception as e:
+        print(f"❌ 接口调用异常退出: {e}")
+        return
+
+    analyze_and_save(file_path, api_target_file, light_log, latency, raw_json, suffix=suffix, save_log=save_log)
+    print("\\n🎉 本次工作流彻底执行完毕！")
+
 if __name__ == "__main__":
-    test_file = "test_image.jpg" # 请替换为实际的测试图片路径
+    # ==========================================
+    # 🎯 实战业务调用演示
+    # ==========================================
+    test_file = "test_image.jpg" # ⚠️ 替换为你的真实测试图片路径
     
     if os.path.exists(test_file):
-        print(f"\\n{'='*50}\\n启动 OCR 图像增强与解析总工作流\\n{'='*50}")
-        # 1. 执行本地预处理
-        processed_file = preprocess_image(test_file)
-        # 2. 输送至大模型
-        ${config.apiMode === 'sync' ? `result = call_paddleocr_sync(processed_file)\n        print("\\n工作流彻底执行完毕！")` : `call_paddleocr_async(processed_file)\n        print("\\n工作流彻底执行完毕！")`}
+        run_pipeline(
+            file_path=test_file, 
+            use_preprocessing=True, 
+            target_dpi=${config.targetDpi}, 
+            is_screen_capture=${config.enableMoire ? 'True' : 'False'}, 
+            save_log=True 
+        )
     else:
         print(f"找不到测试文件: {test_file}")
 `;
@@ -716,7 +896,7 @@ if __name__ == "__main__":
                             <h4 className="font-bold text-slate-700">原生直传 (未处理)</h4>
                           </div>
                           
-                          {/* --- 实际图片展示：未处理图片 (放大高度至350px并增加放大功能) --- */}
+                          {/* --- 实际图片展示：未处理图片 --- */}
                           <div className="w-full h-[350px] bg-slate-100/80 border border-slate-200 rounded-xl mb-6 flex overflow-hidden relative transition-colors shadow-inner">
                             {/* 左半边：原图 */}
                             <div 
@@ -769,7 +949,7 @@ if __name__ == "__main__":
                             <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold border border-emerald-100">推荐方案</span>
                           </div>
 
-                          {/* --- 实际图片展示：处理后图片 (放大高度至350px并增加放大功能) --- */}
+                          {/* --- 实际图片展示：处理后图片 --- */}
                           <div 
                             className="w-full h-[350px] bg-emerald-50/50 border border-emerald-200 rounded-xl mb-6 overflow-hidden relative group/processed cursor-zoom-in transition-colors shadow-inner hover:border-emerald-400"
                             onClick={() => setZoomedImg('./dpi100_layout_det_res_0.jpg')}
@@ -844,14 +1024,14 @@ if __name__ == "__main__":
                       </div>
                     </div>
 
-                    {/* ====== 工作流生成器主体 ====== */}
-                    <div className="flex flex-col xl:flex-row gap-6">
+                    {/* ====== 工作流生成器主体 (关键修复点：增加 fixed height 与 items-stretch) ====== */}
+                    <div className="flex flex-col lg:flex-row gap-6 lg:h-[850px] items-stretch w-full">
                       
-                      {/* 左侧配置面板 */}
-                      <div className="xl:w-[420px] flex-shrink-0 flex flex-col gap-6">
+                      {/* 左侧配置面板 (使用 min-h-0 彻底解决溢出不对齐) */}
+                      <div className="lg:w-[420px] flex-shrink-0 flex flex-col gap-6 min-h-0">
                         
                         {/* 基础设定 */}
-                        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm relative overflow-hidden">
+                        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm relative overflow-hidden shrink-0">
                           <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                           <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2">
                             <i className="ph-bold ph-sliders text-xl text-indigo-500"></i> 基础通道配置
@@ -874,6 +1054,36 @@ if __name__ == "__main__":
                                 </div>
                               </div>
                             </div>
+                            
+                            {/* --- 新增：安全凭证输入区 --- */}
+                            <div>
+                              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                <i className="ph-bold ph-key text-indigo-400"></i> API Token
+                              </label>
+                              <input 
+                                type="password" 
+                                value={config.apiToken}
+                                onChange={(e) => setConfig({...config, apiToken: e.target.value})}
+                                placeholder="输入 Token (选填，仅用于生成代码)"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                              />
+                            </div>
+
+                            {config.apiMode === 'sync' && (
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                    <i className="ph-bold ph-link text-indigo-400"></i> API URL (同步专属)
+                                  </label>
+                                  <input 
+                                    type="text" 
+                                    value={config.apiUrl}
+                                    onChange={(e) => setConfig({...config, apiUrl: e.target.value})}
+                                    placeholder="https://... (选填，自定义私有端点)"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
+                                  />
+                                </div>
+                            )}
+
                             <div>
                               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">API 通信模式</label>
                               <div className="flex rounded-xl overflow-hidden border border-slate-200 bg-slate-50 p-1">
@@ -895,16 +1105,16 @@ if __name__ == "__main__":
                         </div>
 
                         {/* 算法积木 */}
-                        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex-1 flex flex-col overflow-hidden relative">
+                        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex-1 flex flex-col overflow-hidden relative min-h-0">
                           <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-                          <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                          <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between shrink-0">
                             <h3 className="font-bold text-slate-900 flex items-center gap-2">
                               <i className="ph-fill ph-file-code text-xl text-emerald-500"></i> 预处理流水线积木
                             </h3>
                             <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded uppercase tracking-wider">OpenCV/PIL</span>
                           </div>
                           
-                          <div className="p-3 space-y-2 flex-1 overflow-y-auto">
+                          <div className="p-3 space-y-2 flex-1 overflow-y-auto custom-scrollbar min-h-0">
                             {/* DPI Config */}
                             <label className={`flex flex-col p-3.5 rounded-xl border transition-all cursor-pointer ${config.enableDpi ? 'bg-blue-50/30 border-blue-200 shadow-sm' : 'border-slate-100 hover:border-slate-300 hover:bg-slate-50'}`}>
                               <div className="flex items-start gap-3">
@@ -1006,11 +1216,11 @@ if __name__ == "__main__":
                         </div>
                       </div>
 
-                      {/* 右侧智能代码面板 */}
-                      <div className="flex-1 flex flex-col bg-[#0d1117] rounded-2xl overflow-hidden shadow-2xl border border-slate-800 xl:h-[800px]">
+                      {/* 右侧智能代码面板 (使用 min-h-0 防止代码过长撑爆父容器) */}
+                      <div className="flex-1 flex flex-col bg-[#0d1117] rounded-2xl overflow-hidden shadow-2xl border border-slate-800 min-h-0">
                         
                         {/* 编辑器 Top Bar */}
-                        <div className="bg-[#161b22] border-b border-[#30363d] pt-2 px-2 flex items-end justify-between overflow-x-auto custom-scrollbar">
+                        <div className="bg-[#161b22] border-b border-[#30363d] pt-2 px-2 flex items-end justify-between overflow-x-auto custom-scrollbar shrink-0">
                           <div className="flex gap-1.5 flex-nowrap">
                             {visibleCodeTabs.map(tab => (
                               <button
@@ -1039,8 +1249,8 @@ if __name__ == "__main__":
                           </div>
                         </div>
 
-                        {/* 编辑器 Content */}
-                        <div className="flex-1 p-5 overflow-auto custom-scrollbar bg-[#0d1117]">
+                        {/* 编辑器 Content (增加内边距 p-6 和底部留白 pb-8) */}
+                        <div className="flex-1 p-6 pb-8 overflow-y-auto custom-scrollbar bg-[#0d1117] min-h-0">
                           {renderCodeContent()}
                         </div>
                       </div>
