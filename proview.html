@@ -482,7 +482,7 @@
                             <h3 class="mt-2 text-2xl font-bold text-white">体验渠道列表</h3>
                             <p class="mt-2 max-w-2xl text-sm text-slate-300">当某个服务入口不稳定时，用户可以直接切换其他渠道继续体验。当前已接入 1 个线上入口，并保留页面内演示作为兜底。</p>
                         </div>
-                        <a href="#embedded-demo-section" class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-600 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400 hover:text-white">
+                        <a id="embedded-demo-link" href="#embedded-demo-section" class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-600 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-blue-400 hover:text-white">
                             <i class="fa-solid fa-layer-group"></i>
                             查看页面内演示
                         </a>
@@ -910,6 +910,17 @@
                 mockSection.classList.remove('border-t', 'border-gray-200', 'shadow-inner');
                 mockSection.classList.add('min-h-screen', 'pt-10', 'md:pt-14');
             }
+
+            ['embedded-demo-link', 'embedded-demo-section'].forEach((id) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.classList.add('hidden');
+                }
+            });
+
+            document.querySelectorAll('.mock-app-container').forEach((element) => {
+                element.classList.add('hidden');
+            });
 
             document.body.classList.remove('bg-gray-50', 'text-gray-800', 'selection:bg-blue-100', 'selection:text-blue-900');
             document.body.classList.add('bg-slate-800');
