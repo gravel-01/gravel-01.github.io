@@ -71,7 +71,7 @@
 <body class="bg-gray-50 text-gray-800 antialiased selection:bg-blue-100 selection:text-blue-900 custom-scroll">
 
     <!-- Navigation -->
-    <nav class="bg-white shadow-sm sticky top-0 z-50">
+    <nav id="page-nav" class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
@@ -91,7 +91,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <div class="relative bg-white overflow-hidden">
+    <div id="hero-section" class="relative bg-white overflow-hidden">
         <div class="max-w-7xl mx-auto">
             <div class="relative z-10 pb-8 bg-white sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
                 <main class="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
@@ -891,10 +891,39 @@
             document.getElementById('workflow-content').innerHTML = workflowContents[stepKey];
         }
 
+        function isEntryMode() {
+            return new URLSearchParams(window.location.search).get('view') === 'entry';
+        }
+
+        function applyEntryMode() {
+            if (!isEntryMode()) return;
+
+            ['page-nav', 'hero-section', 'market-data', 'user-pain-points', 'core-workflow'].forEach((id) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.classList.add('hidden');
+                }
+            });
+
+            const mockSection = document.getElementById('mock-interview-app-section');
+            if (mockSection) {
+                mockSection.classList.remove('border-t', 'border-gray-200', 'shadow-inner');
+                mockSection.classList.add('min-h-screen', 'pt-10', 'md:pt-14');
+            }
+
+            document.body.classList.remove('bg-gray-50', 'text-gray-800', 'selection:bg-blue-100', 'selection:text-blue-900');
+            document.body.classList.add('bg-slate-800');
+            document.title = 'ProView Experience Entry';
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            applyEntryMode();
             renderExperienceChannels();
-            initCharts();
-            setupInteractions();
+
+            if (!isEntryMode()) {
+                initCharts();
+                setupInteractions();
+            }
         });
 
 
