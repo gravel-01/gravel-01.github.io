@@ -1,0 +1,1942 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ProView AI Interviewer 架构说明</title>
+  <style>
+    /* ==== 全局变量与色彩系统 (Engineering Theme) ==== */
+    :root {
+      --bg-base: #f8fafc;
+      --bg-panel: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-light: #e2e8f0;
+      --border-base: #cbd5e1;
+      
+      --color-primary: #0f172a;
+      --color-blue: #3b82f6;     /* Config/Context */
+      --color-emerald: #10b981;  /* Main Agent */
+      --color-orange: #f59e0b;   /* Eval Sidecar */
+      --color-rose: #f43f5e;     /* Memory Sidecar */
+      --color-teal: #14b8a6;     /* Monitor/Events */
+      --color-indigo: #6366f1;   /* Report */
+
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+
+      --transition-base: all 0.2s ease-in-out;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    body { background: var(--bg-base); color: var(--text-main); line-height: 1.6; font-size: 14px; }
+    button { font: inherit; cursor: pointer; border: none; background: transparent; }
+    a { text-decoration: none; color: inherit; }
+
+    /* ==== 布局与公共组件 ==== */
+    .app-shell { display: flex; flex-direction: column; min-height: 100vh; }
+    .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    
+    .topbar {
+      position: sticky; top: 0; z-index: 40;
+      background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-light);
+    }
+    .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; gap: 24px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 16px; }
+    .brand-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-indigo));
+      color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    .brand-text h1 { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; }
+    .brand-text p { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+    
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; transition: var(--transition-base); border: 1px solid transparent;
+    }
+    .btn-outline { background: var(--bg-panel); border-color: var(--border-base); color: var(--text-main); }
+    .btn-outline:hover { background: #f1f5f9; border-color: #94a3b8; }
+    .btn-primary { background: var(--color-primary); color: #fff; box-shadow: var(--shadow-sm); }
+    .btn-primary:hover { background: #1e293b; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+    /* ==== 首屏 Hero ==== */
+    .hero { padding: 48px 0; display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px; align-items: start; }
+    .hero-copy { padding-right: 24px; }
+    .eyebrow { display: inline-block; padding: 4px 12px; background: #e0e7ff; color: #4338ca; border-radius: 99px; font-size: 12px; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .hero h2 { font-size: 36px; font-weight: 900; line-height: 1.2; letter-spacing: -1px; margin-bottom: 16px; color: #0f172a; }
+    .hero-lead { font-size: 16px; color: #475569; margin-bottom: 24px; max-width: 600px; }
+    
+    .status-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .status-pill { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff; border: 1px solid var(--border-base); border-radius: 8px; font-size: 12px; font-weight: 600; color: #334155; box-shadow: var(--shadow-sm); }
+    .status-pill i { display: block; width: 6px; height: 6px; border-radius: 50%; }
+
+    .principles { display: grid; gap: 16px; }
+    .principle-card { background: #fff; border: 1px solid var(--border-light); padding: 20px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); border-left: 4px solid var(--color-indigo); }
+    .principle-card strong { display: block; font-size: 14px; margin-bottom: 6px; color: #0f172a; }
+    .principle-card p { font-size: 13px; color: #475569; }
+
+    /* ==== 贯穿案例 ==== */
+    .case-study {
+      margin: -12px 0 36px;
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+    }
+    .case-study-main {
+      padding: 22px 24px;
+      background: linear-gradient(180deg, #f8fafc, #fff);
+      border-right: 1px solid var(--border-light);
+    }
+    .case-kicker {
+      display: inline-flex;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #4338ca;
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .case-study h3 {
+      font-size: 18px;
+      line-height: 1.35;
+      margin-bottom: 8px;
+      color: #0f172a;
+    }
+    .case-study p {
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .case-checks {
+      padding: 22px 24px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      align-content: center;
+    }
+    .case-check {
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .case-check span {
+      display: block;
+      color: #64748b;
+      font-weight: 500;
+      margin-top: 3px;
+      line-height: 1.45;
+    }
+
+    /* ==== 四宫格 ==== */
+    .quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin: 24px 0 48px; }
+    .quick-card { background: #fff; border: 1px solid var(--border-light); padding: 20px; border-radius: var(--radius-lg); transition: var(--transition-base); }
+    .quick-card:hover { border-color: var(--border-base); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .quick-card svg { margin-bottom: 12px; color: var(--text-muted); }
+    .quick-card strong { display: block; font-size: 15px; margin-bottom: 8px; color: #0f172a; }
+    .quick-card p { font-size: 13px; color: #475569; line-height: 1.5; }
+
+    /* ==== 核心业务流水线 ==== */
+    .section-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; color: #0f172a; letter-spacing: -0.5px; }
+    .section-subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+    
+    .pipeline-board {
+      background: #fff; border: 1px solid var(--border-light); border-radius: var(--radius-xl);
+      padding: 40px; box-shadow: var(--shadow-sm); position: relative; overflow-x: auto;
+      background-image: radial-gradient(#e2e8f0 1px, transparent 1px); background-size: 24px 24px;
+    }
+    
+    .flow-wrapper { min-width: 900px; position: relative; }
+    
+    /* Main Flow */
+    .flow-tier { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2; margin-bottom: 60px; }
+    /* Sidecars */
+    .sidecar-tier { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; position: relative; z-index: 2; margin-bottom: 60px; padding: 0 40px; }
+    /* Database */
+    .db-tier { display: flex; justify-content: center; position: relative; z-index: 2; }
+
+    /* Nodes */
+    .node-btn {
+      background: #fff; border: 2px solid var(--border-base); border-radius: var(--radius-lg);
+      padding: 16px; width: 180px; text-align: left; position: relative;
+      transition: var(--transition-base); box-shadow: var(--shadow-sm); cursor: pointer;
+    }
+    .node-btn:hover { transform: translateY(-4px); box-shadow: var(--shadow-float); }
+    .node-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .node-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; }
+    .node-btn h3 { font-size: 14px; font-weight: 700; color: #0f172a; }
+    .node-btn p { font-size: 12px; color: #475569; line-height: 1.4; }
+    .node-tag { position: absolute; top: -10px; right: 12px; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: #fff; border: 1px solid var(--border-base); color: var(--text-muted); }
+
+    /* Theme Colors for Nodes */
+    .node-blue { border-color: #bfdbfe; } .node-blue .node-icon { background: var(--color-blue); } .node-blue:hover { border-color: var(--color-blue); }
+    .node-emerald { border-color: #a7f3d0; border-width: 2px; } .node-emerald .node-icon { background: var(--color-emerald); } .node-emerald:hover { border-color: var(--color-emerald); }
+    .node-orange { border-color: #fde68a; border-style: dashed; } .node-orange .node-icon { background: var(--color-orange); } .node-orange:hover { border-color: var(--color-orange); }
+    .node-rose { border-color: #fecdd3; border-style: dashed; } .node-rose .node-icon { background: var(--color-rose); } .node-rose:hover { border-color: var(--color-rose); }
+    .node-indigo { border-color: #c7d2fe; border-style: dashed; } .node-indigo .node-icon { background: var(--color-indigo); } .node-indigo:hover { border-color: var(--color-indigo); }
+    .node-teal { border-color: #99f6e4; } .node-teal .node-icon { background: var(--color-teal); } .node-teal:hover { border-color: var(--color-teal); }
+    .node-db { border-color: #cbd5e1; background: #f8fafc; width: 300px; text-align: center; } .node-db .node-icon { background: #475569; margin: 0 auto 12px; }
+
+    /* Flow Lines (CSS/SVG mixed logic for main board) */
+    .main-connector { flex: 1; height: 3px; background: #93c5fd; position: relative; margin: 0 12px; border-radius: 2px; }
+    .main-connector::after { content: ''; position: absolute; right: -4px; top: -4px; border-top: 5.5px solid transparent; border-bottom: 5.5px solid transparent; border-left: 8px solid #93c5fd; }
+    
+    .flow-wrapper svg.bg-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+    .line-dash-anim { stroke-dasharray: 6 6; animation: dash 20s linear infinite; }
+    @keyframes dash { to { stroke-dashoffset: -1000; } }
+
+    /* ==== 深度探索区 (Deep Dive) ==== */
+    .deep-dive { margin-top: 64px; }
+    .dd-card { background: #fff; border: 1px solid var(--border-light); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-sm); }
+    
+    .dd-header { padding: 0; border-bottom: 1px solid var(--border-light); background: #f8fafc; }
+    .dd-tabs { display: flex; overflow-x: auto; padding: 12px 16px 0; gap: 8px; }
+    .dd-tab { 
+      padding: 10px 16px; font-size: 13px; font-weight: 700; color: #64748b; border: 1px solid transparent; border-bottom: none;
+      border-radius: 8px 8px 0 0; background: transparent; transition: var(--transition-base); position: relative; margin-bottom: -1px;
+    }
+    .dd-tab:hover { color: #0f172a; background: #f1f5f9; }
+    .dd-tab.active { background: #fff; color: var(--color-primary); border-color: var(--border-light); border-bottom-color: #fff; }
+    .dd-tab.active::after { content: ''; position: absolute; top: -1px; left: -1px; right: -1px; height: 3px; background: var(--color-indigo); border-radius: 8px 8px 0 0; }
+
+    .dd-toolbar { padding: 12px 24px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: center; background: #fff; }
+    .dd-toolbar-title { font-size: 13px; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 8px; }
+    
+    .view-toggles { display: flex; background: #f1f5f9; padding: 4px; border-radius: 8px; border: 1px solid var(--border-light); }
+    .view-toggle { padding: 6px 12px; font-size: 12px; font-weight: 700; border-radius: 6px; color: #64748b; }
+    .view-toggle.active { background: #fff; color: #0f172a; box-shadow: var(--shadow-sm); }
+
+    .topic-content { display: none; padding: 32px 24px; }
+    .topic-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .topic-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 32px; align-items: start; }
+    
+    /* Left Panel: Diagram */
+    .diagram-panel { background: #f8fafc; border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 16px; }
+    .topology-wrap[data-view="visual"] .diagram-cards { display: none; }
+    .topology-wrap[data-view="cards"] .diagram-svg { display: none; }
+    
+    .diagram-svg { width: 100%; height: auto; border-radius: 8px; background: #fff; border: 1px solid var(--border-base); box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+    
+    .diagram-cards { display: grid; gap: 12px; }
+    .d-card-row { display: flex; gap: 12px; }
+    .d-card { flex: 1; background: #fff; border: 1px solid var(--border-base); padding: 12px; border-radius: 8px; text-align: center; }
+    .d-card.border-blue { border-left: 4px solid var(--color-blue); }
+    .d-card.border-green { border-left: 4px solid var(--color-emerald); }
+    .d-card.border-orange { border-left: 4px solid var(--color-orange); border-style: dashed; }
+    .d-card.border-purple { border-left: 4px solid #a855f7; }
+    .d-card.border-rose { border-left: 4px solid var(--color-rose); }
+    .d-card strong { display: block; font-size: 13px; color: #1e293b; margin-bottom: 4px; }
+    .d-card span { font-size: 11px; color: #64748b; line-height: 1.4; display: block; }
+    .d-arrow { text-align: center; font-size: 11px; font-weight: 800; color: #94a3b8; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .d-arrow::before, .d-arrow::after { content: ''; height: 1px; background: #cbd5e1; flex: 1; }
+    
+    .tag-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .tag { padding: 4px 10px; font-size: 11px; font-weight: 700; border-radius: 99px; border: 1px solid; }
+    .tag.current { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+    .tag.planned { background: #fefce8; color: #854d0e; border-color: #fef08a; }
+
+    /* Right Panel: Explanations */
+    .explanation-panel { display: grid; gap: 16px; }
+    .exp-box { background: #fff; border: 1px solid var(--border-light); padding: 20px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+    .exp-box h4 { font-size: 14px; font-weight: 800; margin-bottom: 10px; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+    .exp-box p { font-size: 13px; color: #475569; line-height: 1.6; }
+    .exp-list { margin-top: 8px; padding-left: 20px; font-size: 13px; color: #475569; }
+    .exp-list li { margin-bottom: 6px; }
+    .code-block { background: #0f172a; color: #e2e8f0; font-family: monospace; font-size: 12px; padding: 12px; border-radius: 8px; margin-top: 12px; overflow-x: auto; }
+    .scenario-box { border-left: 4px solid var(--color-emerald); background: #f8fafc; }
+    .scenario-box h4 { color: #064e3b; }
+    .scenario-box .scene-label {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #166534;
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .plain-example {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--border-light);
+      font-size: 13px;
+      color: #334155;
+      line-height: 1.6;
+    }
+    .plain-example strong { color: #0f172a; }
+
+    /* ==== 架构答辩增强模块 ==== */
+    .architecture-section { margin: 56px 0; }
+    .answer-note {
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      border: 1px solid var(--border-light);
+      border-left: 4px solid var(--color-indigo);
+      border-radius: 8px;
+      background: #fff;
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.6;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .layer-stack { display: grid; gap: 12px; }
+    .layer-row {
+      --accent: var(--color-blue);
+      display: grid;
+      grid-template-columns: 190px 1fr;
+      gap: 18px;
+      padding: 18px;
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-left: 5px solid var(--accent);
+      border-radius: 8px;
+      box-shadow: var(--shadow-sm);
+    }
+    .layer-title { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+    .layer-title strong { font-size: 16px; color: #0f172a; line-height: 1.3; }
+    .layer-title span { font-size: 11px; color: #fff; background: var(--accent); padding: 3px 8px; border-radius: 999px; font-weight: 800; width: fit-content; }
+    .layer-title small { color: #64748b; font-size: 12px; line-height: 1.45; }
+    .layer-meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .layer-cell {
+      min-width: 0;
+      padding-top: 8px;
+      border-top: 2px solid #f1f5f9;
+    }
+    .layer-cell strong { display: block; font-size: 12px; color: #0f172a; margin-bottom: 5px; }
+    .layer-cell p { color: #475569; font-size: 12px; line-height: 1.55; }
+
+    .component-matrix { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+    .component-card {
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .component-card h3 { font-size: 15px; color: #0f172a; line-height: 1.35; }
+    .component-card .component-role { color: #64748b; font-size: 12px; line-height: 1.5; }
+    .component-field { border-top: 1px solid #f1f5f9; padding-top: 10px; }
+    .component-field strong { display: block; color: #1e293b; font-size: 12px; margin-bottom: 4px; }
+    .component-field p { color: #475569; font-size: 12px; line-height: 1.55; }
+    .component-status {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .component-status.current { background: #dcfce7; color: #166534; }
+    .component-status.planned { background: #fef3c7; color: #92400e; }
+
+    .stage-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .stage-card, .capability-card, .roadmap-card {
+      background: #fff;
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+    .stage-card h3, .capability-card h3, .roadmap-card h3 { color: #0f172a; font-size: 15px; margin-bottom: 10px; }
+    .stage-card ul, .capability-card ul, .roadmap-card ul { padding-left: 18px; color: #475569; font-size: 12px; line-height: 1.55; }
+    .stage-card li, .capability-card li, .roadmap-card li { margin-bottom: 7px; }
+    .stage-card.current { border-top: 4px solid var(--color-emerald); }
+    .stage-card.freeze { border-top: 4px solid var(--color-orange); }
+    .stage-card.future { border-top: 4px solid var(--color-indigo); }
+
+    .capability-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+    .privacy-boundary {
+      margin-top: 16px;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #fecdd3;
+      background: #fff1f2;
+    }
+    .privacy-boundary strong { display: block; color: #9f1239; margin-bottom: 8px; }
+    .privacy-boundary p { color: #7f1d1d; font-size: 12px; line-height: 1.6; }
+    .roadmap-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .roadmap-card { border-top: 4px solid var(--color-blue); }
+    .roadmap-card:nth-child(2) { border-top-color: var(--color-indigo); }
+    .roadmap-card:nth-child(3) { border-top-color: var(--color-rose); }
+    .roadmap-card:nth-child(4) { border-top-color: var(--color-teal); }
+    .roadmap-card:nth-child(5) { border-top-color: var(--color-orange); }
+    .roadmap-card .roadmap-phase { display: block; color: #64748b; font-size: 11px; font-weight: 800; margin-bottom: 8px; text-transform: uppercase; }
+
+    .d-card.border-teal { border-left: 4px solid var(--color-teal); }
+
+    /* ==== Modals & Drawers ==== */
+    .backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .backdrop.open { opacity: 1; pointer-events: auto; }
+    
+    .modal { background: #fff; width: 100%; max-width: 900px; max-height: 90vh; border-radius: var(--radius-xl); box-shadow: var(--shadow-float); display: flex; flex-direction: column; transform: scale(0.95) translateY(20px); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); overflow: hidden; }
+    .backdrop.open .modal { transform: scale(1) translateY(0); }
+    
+    .modal-head { padding: 24px 32px; border-bottom: 1px solid var(--border-light); display: flex; justify-content: space-between; align-items: flex-start; background: #f8fafc; }
+    .modal-head h3 { font-size: 24px; font-weight: 900; color: #0f172a; letter-spacing: -0.5px; margin-bottom: 4px; }
+    .modal-head p { font-size: 14px; color: #64748b; }
+    .btn-close { width: 36px; height: 36px; border-radius: 50%; background: #e2e8f0; color: #475569; display: flex; align-items: center; justify-content: center; transition: var(--transition-base); }
+    .btn-close:hover { background: #cbd5e1; color: #0f172a; transform: rotate(90deg); }
+    
+    .modal-body { padding: 32px; overflow-y: auto; background: #fff; }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .modal-panel { background: #f8fafc; border: 1px solid var(--border-light); padding: 20px; border-radius: var(--radius-lg); }
+    .modal-panel h4 { font-size: 14px; font-weight: 800; color: #1e293b; margin-bottom: 8px; border-bottom: 2px solid var(--border-base); padding-bottom: 8px; display: inline-block;}
+    .modal-panel p { font-size: 13px; color: #475569; line-height: 1.6; }
+    .modal-panel.scenario { border-left: 4px solid var(--color-emerald); background: #f8fffb; grid-column: 1 / -1; }
+    .modal-panel.scenario h4 { border-color: #86efac; color: #065f46; }
+    .modal-panel .modal-text { font-size: 13px; color: #475569; line-height: 1.65; }
+    .modal-panel .modal-text pre {
+      margin-top: 10px;
+      white-space: pre-wrap;
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      overflow-x: auto;
+    }
+    .modal-panel .modal-text ul { padding-left: 18px; margin-top: 8px; }
+    .modal-panel .modal-text li { margin-bottom: 5px; }
+
+    /* Drawer */
+    .drawer-backdrop { justify-content: flex-end; padding: 0; }
+    .drawer { background: #fff; width: 100%; max-width: 560px; height: 100vh; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: -10px 0 30px rgba(0,0,0,0.1); }
+    .drawer-backdrop.open .drawer { transform: translateX(0); }
+    .drawer-body { padding: 24px; overflow-y: auto; background: #f8fafc; flex: 1; }
+    .adr-card { background: #fff; border: 1px solid var(--border-base); padding: 20px; border-radius: var(--radius-lg); margin-bottom: 16px; box-shadow: var(--shadow-sm); border-left: 4px solid var(--color-blue); }
+    .adr-card h4 { font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+    .adr-card p { font-size: 13px; color: #475569; line-height: 1.6; }
+    .adr-badge { display:inline-block; font-size:11px; font-weight:700; background:#e0e7ff; color:#4338ca; padding:2px 8px; border-radius:4px; margin-bottom:10px; }
+    .adr-fields { display: grid; gap: 10px; }
+    .adr-field { border-top: 1px solid #f1f5f9; padding-top: 8px; }
+    .adr-field strong { display: block; font-size: 11px; color: #0f172a; margin-bottom: 3px; }
+    .adr-field p { font-size: 12px; }
+
+    /* SVG Utilities */
+    .icon-lucide { stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+    @media (max-width: 1024px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-copy { padding-right: 0; }
+      .case-study { grid-template-columns: 1fr; }
+      .case-study-main { border-right: none; border-bottom: 1px solid var(--border-light); }
+      .case-checks { grid-template-columns: 1fr; }
+      .topic-grid { grid-template-columns: 1fr; }
+      .modal-grid { grid-template-columns: 1fr; }
+      .flow-wrapper { min-width: auto; overflow-x: auto; padding-bottom: 20px;}
+      .pipeline-board { padding: 20px; }
+      .layer-row { grid-template-columns: 1fr; }
+      .layer-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .stage-grid { grid-template-columns: 1fr; }
+      .capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .layer-meta,
+      .capability-grid { grid-template-columns: 1fr; }
+      .component-matrix,
+      .roadmap-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Header -->
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <div class="brand">
+          <div class="brand-icon">
+            <svg class="icon-lucide" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="brand-text">
+            <h1>ProView AI 架构说明</h1>
+            <p>基于真实面试流程流转的 LLM 工程架构设计</p>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="btnOpenAdr">
+            <svg class="icon-lucide" width="16" height="16" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/></svg>
+            架构决策 (ADRs)
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero-copy">
+          <span class="eyebrow">LLM Application Architecture</span>
+          <h2>面试过程不卡顿，<br/>评估结果有证据。</h2>
+          <p class="hero-lead">
+            ProView 并不是把候选人塞进一个巨大的聊天窗口。系统巧妙地将一次面试拆分为两层：前端负责低延迟的自然连续对话；后端异步链路（Sidecars）则默默沉淀结构化数据、评估证据和长期记忆。
+          </p>
+          <div class="status-row">
+            <span class="status-pill"><i style="background: var(--color-emerald)"></i>主链路保体验</span>
+            <span class="status-pill"><i style="background: var(--color-blue)"></i>RAG 做上下文选择</span>
+            <span class="status-pill"><i style="background: var(--color-orange)"></i>异步 Agent 增强质量</span>
+            <span class="status-pill"><i style="background: var(--color-indigo)"></i>结构化证据生成报告</span>
+          </div>
+        </div>
+        <div class="principles">
+          <div class="principle-card">
+            <strong>核心设计原则：克制的上下文</strong>
+            <p>不是给模型喂入无限的上下文，而是给模型当前最有用、最可控、可恢复的结构化特征。RAG 在此不仅是 QA，更是控制 Token 预算的精细阀门。</p>
+          </div>
+          <div class="principle-card" style="border-color: var(--color-emerald)">
+            <strong>系统交互边界：Output/Metadata 分离</strong>
+            <p>候选人只看到自然语言问题；评分、Rubric、隐藏记忆和 Checkpoint 均通过严谨的 Schema 留在底层数据库，避免复杂 JSON 破坏前台对话体验。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Running Scenario -->
+      <section class="case-study" aria-label="贯穿全页面的真实面试案例">
+        <div class="case-study-main">
+          <span class="case-kicker">贯穿案例</span>
+          <h3>小林：3 年前端，简历写了 React 后台、权限模块和大表格性能优化。</h3>
+          <p>
+            这页后面的每个模块，都围绕同一场面试解释：系统不是泛泛聊天，而是一步步验证小林是否真的做过性能优化、能否说清定位过程、有没有量化指标，以及权限模块理解到什么深度。
+          </p>
+        </div>
+        <div class="case-checks">
+          <div class="case-check">简历线索<span>“使用虚拟滚动优化大表格卡顿”，但没写优化前后指标。</span></div>
+          <div class="case-check">JD 要求<span>复杂表格性能优化、React 后台、权限系统或 RBAC 经验。</span></div>
+          <div class="case-check">要验证什么<span>瓶颈定位、优化动作、量化结果、方案权衡和个人贡献边界。</span></div>
+          <div class="case-check">最终目标<span>报告结论能追溯到具体轮次，而不是最后凭印象总结。</span></div>
+        </div>
+      </section>
+
+      <!-- Architecture Board -->
+      <section class="section">
+        <h2 class="section-title">核心业务流转流水线</h2>
+        <p class="section-subtitle">点击下方节点查看模块底层流转机制。体验优先的实线主链路与负责繁重计算的虚线旁路做异步隔离。</p>
+        
+        <div class="pipeline-board">
+          <div class="flow-wrapper">
+            <!-- Background SVG for connecting lines -->
+            <svg class="bg-lines" viewBox="0 0 900 350" preserveAspectRatio="none">
+              <!-- Main Flow Lines -->
+              <path d="M 190 50 L 260 50" stroke="#93c5fd" stroke-width="4" fill="none" marker-end="url(#arrow-blue)"/>
+              <path d="M 440 50 L 510 50" stroke="#93c5fd" stroke-width="4" fill="none" marker-end="url(#arrow-blue)"/>
+              <path d="M 690 50 L 750 50" stroke="#34d399" stroke-width="4" fill="none" marker-end="url(#arrow-green)"/>
+              
+              <!-- Fan-out to Sidecars (Dashed & Animated) -->
+              <path d="M 590 85 L 590 120" stroke="#94a3b8" stroke-width="2" class="line-dash-anim" fill="none"/>
+              <path d="M 150 120 L 800 120" stroke="#94a3b8" stroke-width="2" class="line-dash-anim" fill="none"/>
+              <path d="M 150 120 L 150 160" stroke="#f59e0b" stroke-width="2" class="line-dash-anim" fill="none" marker-end="url(#arrow-orange)"/>
+              <path d="M 370 120 L 370 160" stroke="#f43f5e" stroke-width="2" class="line-dash-anim" fill="none" marker-end="url(#arrow-rose)"/>
+              <path d="M 590 120 L 590 160" stroke="#14b8a6" stroke-width="2" class="line-dash-anim" fill="none" marker-end="url(#arrow-teal)"/>
+              <path d="M 800 120 L 800 160" stroke="#6366f1" stroke-width="2" class="line-dash-anim" fill="none" marker-end="url(#arrow-indigo)"/>
+
+              <!-- Down to DB -->
+              <path d="M 150 250 L 150 290 L 400 290" stroke="#cbd5e1" stroke-width="2" fill="none" marker-end="url(#arrow-gray)"/>
+              <path d="M 370 250 L 370 270 L 450 270 L 450 290" stroke="#cbd5e1" stroke-width="2" fill="none" marker-end="url(#arrow-gray)"/>
+              <path d="M 800 250 L 800 290 L 600 290" stroke="#cbd5e1" stroke-width="2" fill="none" marker-end="url(#arrow-gray)"/>
+
+              <defs>
+                <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#93c5fd"/></marker>
+                <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#34d399"/></marker>
+                <marker id="arrow-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f59e0b"/></marker>
+                <marker id="arrow-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f43f5e"/></marker>
+                <marker id="arrow-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#14b8a6"/></marker>
+                <marker id="arrow-indigo" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6366f1"/></marker>
+                <marker id="arrow-gray" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#cbd5e1"/></marker>
+              </defs>
+            </svg>
+
+            <!-- Tier 1: Main Flow -->
+            <div class="flow-tier">
+              <button class="node-btn node-blue" data-node="config">
+                <span class="node-tag">Prep</span>
+                <div class="node-header">
+                  <div class="node-icon"><svg class="icon-lucide" width="18" height="18" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></div>
+                  <h3>Config (配置)</h3>
+                </div>
+                <p>将 JD 与简历转化为结构化标签。</p>
+              </button>
+              
+              <button class="node-btn node-blue" data-node="context">
+                <span class="node-tag">RAG</span>
+                <div class="node-header">
+                  <div class="node-icon"><svg class="icon-lucide" width="18" height="18" viewBox="0 0 24 24"><path d="m21 16-5.16-5.16a2 2 0 0 0-2.68-.14l-4.32 3.14a2 2 0 0 1-2.58-.1l-2.1-1.68"/><circle cx="8" cy="9" r="2"/></svg></div>
+                  <h3>Context Builder</h3>
+                </div>
+                <p>提取当前轮次相关的题库和事实。</p>
+              </button>
+              
+              <button class="node-btn node-emerald" data-node="interview">
+                <span class="node-tag" style="background:#10b981; color:#fff; border-color:#10b981;">Main</span>
+                <div class="node-header">
+                  <div class="node-icon"><svg class="icon-lucide" width="18" height="18" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+                  <h3>Interview Agent</h3>
+                </div>
+                <p>低延迟生成可见问题与隐藏评估准则。</p>
+              </button>
+              
+              <button class="node-btn" style="border-color: #e2e8f0; cursor: default; transform: none; box-shadow: none;" data-node="candidate">
+                <div class="node-header">
+                  <div class="node-icon" style="background: #94a3b8;"><svg class="icon-lucide" width="18" height="18" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                  <h3>Candidate UI</h3>
+                </div>
+                <p>清爽对话，免受 JSON 干扰。</p>
+              </button>
+            </div>
+
+            <!-- Tier 2: Async Sidecars -->
+            <div class="sidecar-tier">
+              <button class="node-btn node-orange" data-node="evaluation" style="width:100%;">
+                <span class="node-tag">Async</span>
+                <div class="node-header">
+                  <div class="node-icon"><svg class="icon-lucide" width="18" height="18" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                  <h3>Evaluation</h3>
+                </div>
+                <p>按 Metadata 异步打分寻找缺失证据。</p>
+              </button>
+              
+              <button class="node-btn node-rose" data-node="memory" style="width:100%;">
+                <span class="node-tag">Async</span>
+                <div class="node-header">
+                  <div class="node-icon"><svg class="icon-lucide" width="18" height="18" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+                  <h3>Memory</h3>
+                </div>
+                <p>提取关键事实，控制滑动窗口。</p>
+              </button>
+
+              <button class="node-btn node-teal" data-node="observability" style="width:100%;">
+                <span class="node-tag">Monitor</span>
+                <div class="node-header">
+                  <div class="node-icon"><svg class="icon-lucide" width="18" height="18" viewBox="0 0 24 24"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg></div>
+                  <h3>Observability</h3>
+                </div>
+                <p>记录降级事件与 API 健康度。</p>
+              </button>
+              
+              <button class="node-btn node-indigo" data-node="report" style="width:100%;">
+                <span class="node-tag">Final</span>
+                <div class="node-header">
+                  <div class="node-icon"><svg class="icon-lucide" width="18" height="18" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                  <h3>Report</h3>
+                </div>
+                <p>不总结全文，而是拼接结构化证据。</p>
+              </button>
+            </div>
+
+            <!-- Tier 3: Database -->
+            <div class="db-tier">
+              <button class="node-btn node-db" data-node="database">
+                <div class="node-icon"><svg class="icon-lucide" width="18" height="18" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+                <h3>底层结构化事实库 (SSOT)</h3>
+                <p>interview_turns、metadata、evaluations 与 agent_events 构成可恢复的事实底座。</p>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Layered Architecture -->
+      <section class="architecture-section" id="layered-architecture">
+        <h2 class="section-title">系统分层架构图</h2>
+        <p class="section-subtitle">这部分按一次面试的处理链路拆层，回答“从配置输入到最终报告，中间每一层各负责什么”。它比基础设施分层更适合面试讲解，也能和上面的核心流水线直接对应。</p>
+        <div class="answer-note">
+          贯穿案例里的小林只看到自然面试；系统内部则把“读 JD 和简历、选择上下文、生成追问、异步评分、压缩记忆、生成报告、观察健康状态”拆成七层。这样讲的时候可以顺着一场面试往下走，不容易陷入技术名词堆叠。
+        </div>
+
+        <div class="layer-stack" aria-label="ProView AI Interviewer layered architecture">
+          <article class="layer-row" style="--accent: var(--color-blue);">
+            <div class="layer-title">
+              <span>Step 1</span>
+              <strong>配置层</strong>
+              <small>把 JD、简历和面试目标整理成稳定输入。</small>
+            </div>
+            <div class="layer-meta">
+              <div class="layer-cell"><strong>解决什么</strong><p>把岗位要求、候选人经历、难度、面试类型和目标转成面试官初始笔记。</p></div>
+              <div class="layer-cell"><strong>核心产物</strong><p>job_requirements、candidate_facts、risk_signals、next_followups、interview_config。</p></div>
+              <div class="layer-cell"><strong>为什么这样选</strong><p>先结构化输入，后续每轮不用重新读取完整 JD 和简历，减少 prompt 噪声。</p></div>
+              <div class="layer-cell"><strong>当前 / 下一步</strong><p>当前支持基础配置和候选人线索提取；下一步可补配置版本和解析质量指标。</p></div>
+            </div>
+          </article>
+
+          <article class="layer-row" style="--accent: var(--color-teal);">
+            <div class="layer-title">
+              <span>Step 2</span>
+              <strong>上下文构建层</strong>
+              <small>Prompt Context Builder + RAG Context Selector。</small>
+            </div>
+            <div class="layer-meta">
+              <div class="layer-cell"><strong>解决什么</strong><p>决定这一轮问题前模型该看哪些简历事实、JD 要求、题库 rubric 和历史状态。</p></div>
+              <div class="layer-cell"><strong>核心产物</strong><p>prompt messages、RAG evidence、question rubric、conversation state、context pack。</p></div>
+              <div class="layer-cell"><strong>为什么这样选</strong><p>RAG 在这里不是问答库，而是上下文选择器，用检索替代全量拼接。</p></div>
+              <div class="layer-cell"><strong>当前 / 下一步</strong><p>当前已有基础检索和 RAG monitoring；下一步做 query log、rerank、context packing 评估。</p></div>
+            </div>
+          </article>
+
+          <article class="layer-row" style="--accent: var(--color-emerald);">
+            <div class="layer-title">
+              <span>Step 3</span>
+              <strong>对话生成层</strong>
+              <small>Interview Agent + Candidate UI 的低延迟主链路。</small>
+            </div>
+            <div class="layer-meta">
+              <div class="layer-cell"><strong>解决什么</strong><p>把上下文转成候选人可见的自然追问，并维持面试节奏和体验。</p></div>
+              <div class="layer-cell"><strong>核心产物</strong><p>visible_question、hidden question_metadata、interview_turns、SSE streamed response。</p></div>
+              <div class="layer-cell"><strong>为什么这样选</strong><p>可见输出和 hidden metadata 分离，避免复杂 JSON 泄露或拖慢候选人体验。</p></div>
+              <div class="layer-cell"><strong>当前 / 下一步</strong><p>当前主链路只负责下一问；下一步通过真实短面试 smoke 验证自然度和连续性。</p></div>
+            </div>
+          </article>
+
+          <article class="layer-row" style="--accent: var(--color-orange);">
+            <div class="layer-title">
+              <span>Step 4</span>
+              <strong>后台评估层</strong>
+              <small>Evaluation Agent 异步评分和证据沉淀。</small>
+            </div>
+            <div class="layer-meta">
+              <div class="layer-cell"><strong>解决什么</strong><p>候选人回答后异步判断表现，不阻塞下一问，同时给报告和追问提供证据。</p></div>
+              <div class="layer-cell"><strong>核心产物</strong><p>turn_evaluations、score、pass_level、evidence、suggestion、turn_evaluation_failed event。</p></div>
+              <div class="layer-cell"><strong>为什么这样选</strong><p>评分耗时且需要结构化输出，放到 sidecar 可以保护主对话低延迟。</p></div>
+              <div class="layer-cell"><strong>当前 / 下一步</strong><p>当前支持按 turn_id + dimension 幂等评分；下一步补评估延迟和覆盖率 smoke。</p></div>
+            </div>
+          </article>
+
+          <article class="layer-row" style="--accent: var(--color-rose);">
+            <div class="layer-title">
+              <span>Step 5</span>
+              <strong>记忆压缩层</strong>
+              <small>Memory / Summary Agent 处理长面试上下文。</small>
+            </div>
+            <div class="layer-meta">
+              <div class="layer-cell"><strong>解决什么</strong><p>长面试不能只靠最近几轮，也不能全量拼历史，需要保留早期关键线索。</p></div>
+              <div class="layer-cell"><strong>核心产物</strong><p>hidden memory card、context checkpoint、context_compacted event、open_threads、risk_signals。</p></div>
+              <div class="layer-cell"><strong>为什么这样选</strong><p>短期窗口保证自然衔接，长期记忆卡保证不忘关键事实，agent_events 支持重启恢复。</p></div>
+              <div class="layer-cell"><strong>当前 / 下一步</strong><p>当前 deterministic checkpoint 可用；下一步做长面试 smoke 和 Summary Agent staging。</p></div>
+            </div>
+          </article>
+
+          <article class="layer-row" style="--accent: var(--color-indigo);">
+            <div class="layer-title">
+              <span>Step 6</span>
+              <strong>报告生成层</strong>
+              <small>Report Agent 聚合过程证据生成最终反馈。</small>
+            </div>
+            <div class="layer-meta">
+              <div class="layer-cell"><strong>解决什么</strong><p>面试结束后不能凭印象总结，要把全过程评分、证据和风险点组织成报告。</p></div>
+              <div class="layer-cell"><strong>核心产物</strong><p>final report、dimension_scores、evidence schema、next_training_plan、fallback report。</p></div>
+              <div class="layer-cell"><strong>为什么这样选</strong><p>报告从 turns、metadata、evaluations、memory checkpoint 聚合，结论更容易追溯。</p></div>
+              <div class="layer-cell"><strong>当前 / 下一步</strong><p>当前支持结构化 evidence 和模板 fallback；下一步验证真实报告覆盖率和可读性。</p></div>
+            </div>
+          </article>
+
+          <article class="layer-row" style="--accent: var(--color-teal);">
+            <div class="layer-title">
+              <span>Cross-cutting</span>
+              <strong>可观测层</strong>
+              <small>横切全链路，只看健康信号，不看候选人隐私内容。</small>
+            </div>
+            <div class="layer-meta">
+              <div class="layer-cell"><strong>解决什么</strong><p>发现 RAG miss、评估失败、上下文压缩异常、报告 fallback 等静默退化。</p></div>
+              <div class="layer-cell"><strong>核心产物</strong><p>health-summary、evaluation-coverage、context-compaction、rag-retrieval、report-generation、learning signal-summary。</p></div>
+              <div class="layer-cell"><strong>为什么这样选</strong><p>Monitoring / Learning 只返回聚合指标，不返回候选人回答、问题原文、报告正文或 hidden memory。</p></div>
+              <div class="layer-cell"><strong>当前 / 下一步</strong><p>当前后端聚合接口已成形；下一步做 endpoint smoke 和可选 operator-only UI。</p></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Component Matrix -->
+      <section class="architecture-section" id="component-matrix">
+        <h2 class="section-title">核心组件选型与测评矩阵</h2>
+        <p class="section-subtitle">这部分回答“为什么有这些组件、怎么评估它们是否有效、失败时如何兜底”。每张卡片都区分当前状态和下一步，不把未来生产化能力说成已经完成。</p>
+
+        <div class="component-matrix">
+          <article class="component-card">
+            <span class="component-status current">Current</span>
+            <h3>Prompt Context Builder</h3>
+            <p class="component-role">每轮提问前负责组装角色、任务、RAG 证据、对话状态和输出约束。</p>
+            <div class="component-field"><strong>为什么选择</strong><p>避免把完整 JD、简历、题库和历史都塞进 prompt，让模型只看当前最有用上下文。</p></div>
+            <div class="component-field"><strong>测评方式</strong><p>token usage、prompt latency、metadata completeness、follow-up relevance、fallback usage。</p></div>
+            <div class="component-field"><strong>兜底 / 下一步</strong><p>RAG miss 时走关键词和上一轮继承；下一步补 context packing 日志和 prompt version 对比。</p></div>
+          </article>
+
+          <article class="component-card">
+            <span class="component-status current">Current + Planned</span>
+            <h3>RAG Context Selector</h3>
+            <p class="component-role">不是普通问答库，而是给面试官选择当前轮相关证据和评分口径。</p>
+            <div class="component-field"><strong>为什么选择</strong><p>降低 token 成本、减少召回噪声，让同类问题复用更稳定的 rubric。</p></div>
+            <div class="component-field"><strong>测评方式</strong><p>precision、recall、faithfulness、context relevance、latency、token cost、RAG hit/miss/failure。</p></div>
+            <div class="component-field"><strong>兜底 / 下一步</strong><p>关键词归类、弱追问继承、综合表现兜底；下一步建立评估集、query log、rerank 和 context packing。</p></div>
+          </article>
+
+          <article class="component-card">
+            <span class="component-status current">Current</span>
+            <h3>Interview Agent</h3>
+            <p class="component-role">唯一直接面对候选人的主链路，负责自然提问、追问和节奏控制。</p>
+            <div class="component-field"><strong>为什么选择</strong><p>把候选人可见输出和 hidden metadata 分离，避免复杂 JSON 影响对话体验。</p></div>
+            <div class="component-field"><strong>测评方式</strong><p>SSE latency、visible question quality、JSON leakage count、duplicate question rate、fallback question count。</p></div>
+            <div class="component-field"><strong>兜底 / 下一步</strong><p>metadata 失败时仍可输出纯文本问题；下一步用真实短面试 smoke 验证体验。</p></div>
+          </article>
+
+          <article class="component-card">
+            <span class="component-status current">Current</span>
+            <h3>Evaluation Agent</h3>
+            <p class="component-role">按 turn_id + dimension 异步评分，最多两个主维度，不阻塞候选人看到下一问。</p>
+            <div class="component-field"><strong>为什么选择</strong><p>评分耗时且需要结构化输出，放在主链路会增加等待和解析风险。</p></div>
+            <div class="component-field"><strong>测评方式</strong><p>evaluation.coverage_rate、failure_rate、latency、JSON parse failure、evidence completeness。</p></div>
+            <div class="component-field"><strong>兜底 / 下一步</strong><p>记录 turn_evaluation_failed，报告阶段使用已有 evidence 或模板 fallback；下一步补真实流程延迟监控。</p></div>
+          </article>
+
+          <article class="component-card">
+            <span class="component-status current">Current + Staging</span>
+            <h3>Memory / Summary Agent</h3>
+            <p class="component-role">把长面试历史压缩成 hidden memory card 和 context checkpoint。</p>
+            <div class="component-field"><strong>为什么选择</strong><p>不用完整历史拼接，也不只依赖进程内记忆，兼顾 token、延迟和重启恢复。</p></div>
+            <div class="component-field"><strong>测评方式</strong><p>context_compacted_event_count、latest_context_version、summary failure count、open_thread_count、estimated_tokens。</p></div>
+            <div class="component-field"><strong>兜底 / 下一步</strong><p>Summary Agent 默认关闭或短超时，失败回退确定性 memory card；下一步做长面试 compaction smoke。</p></div>
+          </article>
+
+          <article class="component-card">
+            <span class="component-status current">Current</span>
+            <h3>Report Agent</h3>
+            <p class="component-role">聚合 turns、metadata、evaluations、memory checkpoint 和 RAG evidence 生成最终报告。</p>
+            <div class="component-field"><strong>为什么选择</strong><p>报告不能只凭最后印象总结，需要能回到具体轮次和过程证据。</p></div>
+            <div class="component-field"><strong>测评方式</strong><p>report success rate、fallback success rate、evidence coverage、dimension completeness、format repair count。</p></div>
+            <div class="component-field"><strong>兜底 / 下一步</strong><p>主 LLM 失败时用 turn_evaluations 生成模板报告；下一步持续验证 evidence schema。</p></div>
+          </article>
+
+          <article class="component-card">
+            <span class="component-status current">Current</span>
+            <h3>Monitoring</h3>
+            <p class="component-role">只观察系统健康和聚合信号，发现异步 Agent 静默失败。</p>
+            <div class="component-field"><strong>为什么选择</strong><p>多 Agent 可能后台退化但前台仍可对话，必须用聚合指标发现问题。</p></div>
+            <div class="component-field"><strong>测评方式</strong><p>health summary、agent-events rollup、evaluation coverage、context compaction、RAG retrieval、report generation。</p></div>
+            <div class="component-field"><strong>隐私边界</strong><p>不返回候选人回答、问题原文、报告正文、evidence 原文、hidden memory、checkpoint payload、RAG query 或文档内容。</p></div>
+          </article>
+
+          <article class="component-card">
+            <span class="component-status current">Default Off</span>
+            <h3>Learning LLM</h3>
+            <p class="component-role">读取安全聚合投影，输出需要人工审核的改进建议。</p>
+            <div class="component-field"><strong>为什么选择</strong><p>学习闭环要先做建议和审核，不能让模型自动修改 Prompt、Rubric、RAG 或题库。</p></div>
+            <div class="component-field"><strong>测评方式</strong><p>signal-summary HTTP 200、suggestions fallback rate、requires_human_review、unsafe field leakage count。</p></div>
+            <div class="component-field"><strong>兜底 / 下一步</strong><p>默认关闭，异常不 500；下一步做 staging smoke 和审核队列设计。</p></div>
+          </article>
+
+          <article class="component-card">
+            <span class="component-status current">Current</span>
+            <h3>Database / SSOT</h3>
+            <p class="component-role">结构化事实源，保存 turn、metadata、evaluation、event、checkpoint 和 report snapshot。</p>
+            <div class="component-field"><strong>为什么选择</strong><p>多 Agent 协作必须围绕同一事实源，否则会轮次错乱、重复评分或恢复失败。</p></div>
+            <div class="component-field"><strong>测评方式</strong><p>断线恢复、幂等 upsert、checkpoint rehydrate、报告 evidence 追溯、structured route smoke。</p></div>
+            <div class="component-field"><strong>兜底 / 下一步</strong><p>派生结果失败时保留原始 turn 可重试；下一步设计 PostgreSQL / Supabase structured migration。</p></div>
+          </article>
+
+          <article class="component-card">
+            <span class="component-status planned">Future</span>
+            <h3>Redis Future Layer</h3>
+            <p class="component-role">云端阶段的缓存、队列和协调层，不作为权威事实源。</p>
+            <div class="component-field"><strong>为什么选择</strong><p>本地优先阶段不引入 Redis，避免运维复杂度；多 worker 场景再用它削峰和协调。</p></div>
+            <div class="component-field"><strong>测评方式</strong><p>cache hit rate、queue latency、lock conflict count、worker retry rate、SSE session recovery。</p></div>
+            <div class="component-field"><strong>兜底 / 下一步</strong><p>Redis 丢失不影响数据库事实；未来用于 session cache、prompt cache、agent queue 和 distributed lock。</p></div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Quick Concept Grid -->
+      <section class="quick-grid">
+        <div class="quick-card">
+          <svg class="icon-lucide" width="24" height="24" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <strong>Output / Metadata 边界隔离</strong>
+          <p>自然对话抛给前台候选人；Rubric 与隐藏状态机下沉至后端。消除长 JSON 引发的响应卡顿与泄露风险。</p>
+        </div>
+        <div class="quick-card">
+          <svg class="icon-lucide" width="24" height="24" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <strong>RAG 定位：Context Selector</strong>
+          <p>避免全量资料灌装模式。RAG 在系统内负责精细裁剪，只把当前轮次迫切需要的评估口径塞入 Prompt。</p>
+        </div>
+        <div class="quick-card">
+          <svg class="icon-lucide" width="24" height="24" viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.17-2.83L6 6"/><path d="m18 6-4.83 4.83A4 4 0 0 0 12 13.67V22"/></svg>
+          <strong>柔性异步协同 (Fan-out)</strong>
+          <p>Interview Agent 负责候选人可见主链路，评估与压缩放在异步旁路，保证对话体验不断线。</p>
+        </div>
+        <div class="quick-card">
+          <svg class="icon-lucide" width="24" height="24" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+          <strong>数据快照兜底</strong>
+          <p>主报告 LLM 失败时，报告系统可以检索 turn_evaluations 里的过程证据，生成一份基础但可用的保底报告。</p>
+        </div>
+      </section>
+
+      <!-- Deep Dive Topics -->
+      <section class="deep-dive" id="deep-dive">
+        <h2 class="section-title">专题深度架构图解</h2>
+        <p class="section-subtitle">探索模块间的流转契约与防线设计 (Architecture Deep Dive)</p>
+
+        <div class="dd-card">
+          <div class="dd-header">
+            <div class="dd-tabs" id="topicTabs">
+              <button class="dd-tab active" data-target="topic-prompt">Prompt & RAG 管线</button>
+              <button class="dd-tab" data-target="topic-multi">Multi-Agent 隔离</button>
+              <button class="dd-tab" data-target="topic-memory">记忆压缩与 Token</button>
+              <button class="dd-tab" data-target="topic-db">监控沙箱与 DB</button>
+              <button class="dd-tab" data-target="topic-report">聚合报告与兜底</button>
+            </div>
+            <div class="dd-toolbar">
+              <div class="dd-toolbar-title"><svg class="icon-lucide" width="16" height="16" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg> 架构视图切换</div>
+              <div class="view-toggles" id="viewToggles">
+                <button class="view-toggle active" data-view="visual">工程拓扑 (Visual)</button>
+                <button class="view-toggle" data-view="cards">卡片流转 (Cards)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Topic 1: Prompt & RAG -->
+          <div class="topic-content active topology-wrap" id="topic-prompt" data-view="visual">
+            <div class="topic-grid">
+              <div class="diagram-panel">
+                <!-- Visual SVG -->
+                <svg class="diagram-svg" viewBox="0 0 500 380">
+                  <defs>
+                    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#64748b"/></marker>
+                    <marker id="arr-dash" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f59e0b"/></marker>
+                  </defs>
+                  
+                  <!-- Config -->
+                  <rect x="20" y="20" width="120" height="40" rx="6" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
+                  <text x="80" y="44" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Config (JD/Resume)</text>
+
+                  <!-- RAG Flow -->
+                  <rect x="20" y="80" width="120" height="40" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+                  <text x="80" y="104" text-anchor="middle" font-size="12" fill="#475569">RAG Index (Chunks)</text>
+                  
+                  <path d="M 80 120 L 80 140" stroke="#64748b" fill="none" marker-end="url(#arr)"/>
+                  <rect x="20" y="140" width="120" height="40" rx="6" fill="#f3e8ff" stroke="#d8b4fe" stroke-width="2"/>
+                  <text x="80" y="164" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Retrieve / Rerank</text>
+
+                  <path d="M 80 180 L 80 200" stroke="#64748b" fill="none" marker-end="url(#arr)"/>
+                  <rect x="20" y="200" width="120" height="40" rx="6" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/>
+                  <text x="80" y="224" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e293b">Context Pack (Top)</text>
+
+                  <!-- Prompt Assembly Box -->
+                  <rect x="180" y="60" width="140" height="180" rx="8" fill="#fff" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4 4"/>
+                  <text x="250" y="80" text-anchor="middle" font-size="12" font-weight="bold" fill="#475569">Prompt Assembly</text>
+                  <rect x="190" y="95" width="120" height="24" rx="4" fill="#f1f5f9"/> <text x="250" y="111" text-anchor="middle" font-size="10" fill="#64748b">1. Role & Task</text>
+                  <rect x="190" y="125" width="120" height="24" rx="4" fill="#f1f5f9"/> <text x="250" y="141" text-anchor="middle" font-size="10" fill="#64748b">2. State (Memory)</text>
+                  <rect x="190" y="155" width="120" height="24" rx="4" fill="#dcfce7"/> <text x="250" y="171" text-anchor="middle" font-size="10" font-weight="bold" fill="#166534">3. RAG Evidence</text>
+                  <rect x="190" y="185" width="120" height="24" rx="4" fill="#f1f5f9"/> <text x="250" y="201" text-anchor="middle" font-size="10" fill="#64748b">4. Output Contract</text>
+
+                  <!-- Connectors to Assembly -->
+                  <path d="M 140 40 L 160 40 L 160 107 L 180 107" stroke="#64748b" fill="none" marker-end="url(#arr)"/>
+                  <path d="M 140 220 L 160 220 L 160 167 L 180 167" stroke="#64748b" fill="none" marker-end="url(#arr)"/>
+
+                  <!-- Output to Main Agent -->
+                  <path d="M 320 150 L 360 150" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+                  <rect x="360" y="130" width="120" height="40" rx="6" fill="#ecfdf5" stroke="#34d399" stroke-width="2"/>
+                  <text x="420" y="154" text-anchor="middle" font-size="12" font-weight="bold" fill="#065f46">Interview Agent</text>
+
+                  <!-- DeepSeek Fallback -->
+                  <path d="M 420 80 L 420 100 L 250 100" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 4" fill="none" marker-end="url(#arr-dash)"/>
+                  <rect x="360" y="40" width="120" height="40" rx="6" fill="#fffbeb" stroke="#fcd34d" stroke-width="1" stroke-dasharray="2 2"/>
+                  <text x="420" y="60" text-anchor="middle" font-size="11" font-weight="bold" fill="#b45309">DeepSeek Assistant</text>
+                  <text x="420" y="74" text-anchor="middle" font-size="9" fill="#d97706">(Prompt Repair Only)</text>
+
+                  <!-- Metadata DB -->
+                  <rect x="180" y="300" width="280" height="40" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-width="1"/>
+                  <text x="320" y="324" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">question_metadata (稳定口径兜底与复用)</text>
+                  <path d="M 420 170 L 420 300" stroke="#94a3b8" fill="none" marker-end="url(#arr)"/>
+                  <path d="M 140 220 L 160 220 L 160 320 L 180 320" stroke="#94a3b8" stroke-dasharray="4 4" fill="none"/>
+                </svg>
+                
+                <!-- Cards Flow -->
+                <div class="diagram-cards">
+                  <div class="d-card-row">
+                    <div class="d-card border-blue"><strong>Config Snapshot</strong><span>提取关键 JD 摘要与简历事实，不再全量灌入。</span></div>
+                    <div class="d-card border-purple"><strong>RAG Index & Retrieve</strong><span>依据当前进度切分知识库，构造 Query 并重排。</span></div>
+                  </div>
+                  <div class="d-arrow">Context Packing</div>
+                  <div class="d-card border-green" style="border-left-color:var(--color-teal);"><strong>Prompt Assembly</strong><span>将角色、任务、动态 RAG 证据严格组装，拒绝注意力迷失。</span></div>
+                  <div class="d-arrow">Repair Boundary</div>
+                  <div class="d-card-row">
+                    <div class="d-card border-orange"><strong>DeepSeek Fallback</strong><span>仅作为旁路 Prompt 修复器，绝不接管面试主干。</span></div>
+                    <div class="d-card border-blue" style="border-left-color:var(--border-base);"><strong>Metadata Registry</strong><span>未命中 RAG 时，靠规则补齐评价标准兜底。</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="explanation-panel">
+                <div class="exp-box scenario-box">
+                  <span class="scene-label">真实场景</span>
+                  <h4>小林的大表格优化，Prompt 到底怎么组装？</h4>
+                  <p>当前阶段是项目深挖，小林刚说“我用了虚拟滚动，页面不卡了”，但没有提供指标。系统不会把完整简历和题库都塞给模型，而是只组装这轮需要的信息。</p>
+                  <div class="code-block">System Role: 专业面试官，问题要自然、具体，不泄露评分规则
+Current Task: 验证大表格性能优化经历
+Candidate Facts: React 后台系统，虚拟滚动优化大表格
+RAG Evidence: 瓶颈定位、优化动作、量化结果、方案权衡
+Conversation State: 上一轮缺少指标
+Output Contract: 只输出候选人可见追问</div>
+                  <div class="plain-example"><strong>生成问题：</strong>你刚才提到用了虚拟滚动。当时大概是多少数据量？优化前后的首屏渲染耗时或滚动流畅度有具体变化吗？</div>
+                </div>
+                <div class="exp-box">
+                  <h4>💡 Context Selector，而非 QA 库</h4>
+                  <p>这里的 Context Builder 可以理解成“每一轮提问前帮 AI 面试官翻笔记”。它不是直接回答问题，而是先判断这一轮该问什么，再从 JD、简历、题库和历史记录里挑出最相关的几条材料。比如聊到性能优化，就只给模型大表格优化经历、JD 的性能要求、题库里的评分标准，以及“上一轮没说指标”这个状态。</p>
+                  <div class="plain-example"><strong>大白话：</strong>不要把所有资料一股脑塞给模型。Context Builder 先挑重点，Interview Agent 再开口问。</div>
+                </div>
+                <div class="exp-box">
+                  <h4>🛡️ DeepSeek 柔性防线</h4>
+                  <p>如果主模板总是问“可以再展开讲讲吗？”这种泛问题，DeepSeek 只作为 prompt assistant 生成候选修复稿，例如要求追问瓶颈、定位方法和量化指标。它不能接管主流程，生成结果必须经过字段校验、版本记录和 Output/Metadata 边界检查。</p>
+                </div>
+                <div class="exp-box scenario-box">
+                  <span class="scene-label">RAG Miss 例子</span>
+                  <h4>新岗位没命中题库时，面试也不能停</h4>
+                  <p>如果用户填“AI Agent 应用工程师”，知识库暂时没有匹配题库，系统记录 <code>rag_retrieval_missed</code>，但仍用 JD 关键词和通用工程能力继续问。</p>
+                  <div class="code-block">{
+  "event_type": "rag_retrieval_missed",
+  "payload": {
+    "stage": "opening",
+    "job_title_matched": false,
+    "questions_count": 0,
+    "scripts_count": 1
+  }
+}</div>
+                  <div class="plain-example"><strong>大白话：</strong>RAG miss 不是系统坏了，而是知识库覆盖不够。面试继续，监控后续提醒补题库。</div>
+                </div>
+                <div class="tag-row">
+                  <span class="tag current">Current: 五层 Prompt 编译</span>
+                  <span class="tag current">Current: Metadata 规则兜底</span>
+                  <span class="tag planned">Planned: 精细化 Rerank</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Topic 2: Multi-Agent -->
+          <div class="topic-content topology-wrap" id="topic-multi" data-view="visual">
+            <div class="topic-grid">
+              <div class="diagram-panel">
+                <svg class="diagram-svg" viewBox="0 0 500 320">
+                  <defs><marker id="arr-ma" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker></defs>
+                  
+                  <!-- User to Main -->
+                  <rect x="180" y="20" width="140" height="40" rx="20" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1"/>
+                  <text x="250" y="44" text-anchor="middle" font-size="12" font-weight="bold" fill="#334155">Candidate (User)</text>
+                  
+                  <path d="M 250 60 L 250 90" stroke="#10b981" stroke-width="3" fill="none" marker-end="url(#arr-ma)"/>
+                  
+                  <rect x="160" y="90" width="180" height="50" rx="8" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+                  <text x="250" y="115" text-anchor="middle" font-size="13" font-weight="bold" fill="#065f46">Interview Agent</text>
+                  <text x="250" y="130" text-anchor="middle" font-size="10" fill="#059669">唯一毫秒级绿色主通道</text>
+
+                  <!-- Async Fan-out Line -->
+                  <path d="M 250 140 L 250 180" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" fill="none"/>
+                  <path d="M 80 180 L 420 180" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4 4" fill="none"/>
+                  <text x="250" y="174" text-anchor="middle" font-size="10" font-weight="bold" fill="#64748b">Async Sidecar Fan-out (非阻塞扇出)</text>
+
+                  <!-- Sidecars -->
+                  <path d="M 80 180 L 80 200" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arr-ma)"/>
+                  <rect x="30" y="200" width="100" height="50" rx="6" fill="#fffbeb" stroke="#fcd34d" stroke-width="1"/>
+                  <text x="80" y="225" text-anchor="middle" font-size="12" font-weight="bold" fill="#b45309">Evaluation</text>
+                  <text x="80" y="240" text-anchor="middle" font-size="9" fill="#d97706">评分判定</text>
+
+                  <path d="M 193 180 L 193 200" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arr-ma)"/>
+                  <rect x="143" y="200" width="100" height="50" rx="6" fill="#fff1f2" stroke="#fecdd3" stroke-width="1"/>
+                  <text x="193" y="225" text-anchor="middle" font-size="12" font-weight="bold" fill="#be123c">Memory</text>
+                  <text x="193" y="240" text-anchor="middle" font-size="9" fill="#e11d48">压缩提纯</text>
+
+                  <path d="M 306 180 L 306 200" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arr-ma)"/>
+                  <rect x="256" y="200" width="100" height="50" rx="6" fill="#f0fdfa" stroke="#5eead4" stroke-width="1"/>
+                  <text x="306" y="225" text-anchor="middle" font-size="12" font-weight="bold" fill="#0f766e">Monitor</text>
+                  <text x="306" y="240" text-anchor="middle" font-size="9" fill="#0d9488">事件捕获</text>
+
+                  <path d="M 420 180 L 420 200" stroke="#94a3b8" stroke-width="2" fill="none" marker-end="url(#arr-ma)"/>
+                  <rect x="370" y="200" width="100" height="50" rx="6" fill="#e0e7ff" stroke="#a5b4fc" stroke-width="1"/>
+                  <text x="420" y="225" text-anchor="middle" font-size="12" font-weight="bold" fill="#4338ca">Report</text>
+                  <text x="420" y="240" text-anchor="middle" font-size="9" fill="#4f46e5">终态组装</text>
+                  
+                  <rect x="30" y="270" width="440" height="30" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="2 2"/>
+                  <text x="250" y="289" text-anchor="middle" font-size="11" font-weight="bold" fill="#64748b">所有 Sidecar 崩溃，Interview Agent 仍靠底层 DB Rules 存活</text>
+                </svg>
+                
+                <div class="diagram-cards">
+                  <div class="d-card border-green"><strong>主链路：Interview Agent</strong><span>直面用户的唯一合法通道，强制要求极低延迟响应。</span></div>
+                  <div class="d-arrow">Async Fan-out</div>
+                  <div class="d-card-row" style="flex-wrap: wrap;">
+                    <div class="d-card border-orange" style="min-width: 45%;"><strong>Evaluation</strong><span>写回评分维度。</span></div>
+                    <div class="d-card border-rose" style="min-width: 45%;"><strong>Memory</strong><span>压缩历史上下文。</span></div>
+                    <div class="d-card border-teal" style="min-width: 45%;"><strong>Monitor</strong><span>守护事件安防。</span></div>
+                    <div class="d-card border-purple" style="min-width: 45%;"><strong>Report</strong><span>滞后收敛汇聚。</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="explanation-panel">
+                <div class="exp-box scenario-box">
+                  <span class="scene-label">多维评分例子</span>
+                  <h4>同一句回答，不只考一个能力</h4>
+                  <p>小林回答：“三万行数据直接渲染会卡，我用 Chrome Performance 看到 DOM 节点太多和滚动重排，后来用虚拟滚动和接口分页，首屏从 2.8s 降到 900ms。”</p>
+                  <div class="code-block">[
+  {
+    "turn_no": 5,
+    "dimension": "性能优化",
+    "score": 8,
+    "evidence": "三万行数据、虚拟滚动、接口分页、2.8s -> 900ms",
+    "suggestion": "追问虚拟滚动边界情况和白屏处理"
+  },
+  {
+    "turn_no": 5,
+    "dimension": "问题定位",
+    "score": 7,
+    "evidence": "使用 Chrome Performance 定位 DOM 节点过多和滚动重排",
+    "suggestion": "追问如何确认主要瓶颈不是接口慢"
+  }
+]</div>
+                  <div class="plain-example"><strong>大白话：</strong>这像真实面试官做笔记，同一句回答既能看技术方案，也能看他是不是会定位问题。</div>
+                </div>
+                <div class="exp-box">
+                  <h4>异步隔离与降级</h4>
+                  <p>复杂的大模型网络请求可能带来级联延迟。这里把打分、总结等计算较重的逻辑放到 Sidecar 异步执行。即使 Evaluation 链路异常，主链路也可以基于短期记忆和数据库里的结构化状态继续生成下一问，降低候选人等待风险。</p>
+                </div>
+                <div class="exp-box">
+                  <h4>🤝 基于 Schema 的静默契约</h4>
+                  <p>Agent 群并不通过自由长文本进行高风险通讯，而是通过数据库里的 <code>turn_id</code>、<code>turn_evaluations</code> 和 <code>agent_events</code> 等结构化键完成交接。</p>
+                </div>
+                <div class="exp-box scenario-box">
+                  <span class="scene-label">异步追问例子</span>
+                  <h4>后台评分悄悄变成下一句自然追问</h4>
+                  <p>如果小林第一版只说“我用了虚拟滚动，页面就不卡了”，Evaluation Agent 后台判断缺少瓶颈和指标。</p>
+                  <div class="code-block">{
+  "turn_no": 4,
+  "dimension": "性能优化",
+  "pass_level": "partial",
+  "missing": ["没有说明卡顿瓶颈", "没有说明优化前后指标"],
+  "suggestion": "追问数据量、渲染耗时、FPS 或 P95"
+}</div>
+                  <div class="plain-example"><strong>下一问：</strong>你刚才提到用了虚拟滚动。当时大概是多少数据量？优化前后的首屏渲染耗时或滚动流畅度有具体变化吗？</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Topic 3: Memory -->
+          <div class="topic-content topology-wrap" id="topic-memory" data-view="visual">
+            <div class="topic-grid">
+              <div class="diagram-panel">
+                <svg class="diagram-svg" viewBox="0 0 760 490" width="100%" height="100%">
+                  <defs>
+                    <!-- 箭头定义 -->
+                    <marker id="arr-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#3b82f6"/></marker>
+                    <marker id="arr-rose" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#f43f5e"/></marker>
+                    <marker id="arr-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8b5cf6"/></marker>
+                    <marker id="arr-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#10b981"/></marker>
+                    <marker id="arr-slate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#64748b"/></marker>
+                    <!-- 柔和阴影滤镜 -->
+                    <filter id="shadow-soft" x="-10%" y="-10%" width="120%" height="120%">
+                      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.06"/>
+                    </filter>
+                  </defs>
+
+                  <!-- 顶部：灾区背景板 -->
+                  <rect x="20" y="20" width="720" height="120" rx="16" fill="#f8fafc" stroke="#e2e8f0" stroke-dasharray="6 6"/>
+                  <text x="380" y="48" text-anchor="middle" font-size="14" font-weight="800" fill="#64748b" letter-spacing="1">⏳ 海量历史上下文 (Lost-in-the-middle 高危灾区)</text>
+
+                  <!-- 顶部三个来源节点 -->
+                  <!-- 1. 近期对话 -->
+                  <rect x="50" y="70" width="180" height="46" rx="8" fill="#ffffff" stroke="#cbd5e1" filter="url(#shadow-soft)"/>
+                  <text x="140" y="97" text-anchor="middle" font-size="13" font-weight="800" fill="#334155">近期原文 (Turn 16~20)</text>
+
+                  <!-- 2. 早期历史 (被压缩) -->
+                  <rect x="290" y="70" width="180" height="46" rx="8" fill="#ffffff" stroke="#cbd5e1" filter="url(#shadow-soft)"/>
+                  <text x="380" y="97" text-anchor="middle" font-size="13" font-weight="800" fill="#334155">早期历史 (Turn 1~15)</text>
+                  <text x="450" y="98" font-size="14">✂️</text>
+
+                  <!-- 3. 全局进度 -->
+                  <rect x="530" y="70" width="180" height="46" rx="8" fill="#ffffff" stroke="#cbd5e1" filter="url(#shadow-soft)"/>
+                  <text x="620" y="97" text-anchor="middle" font-size="13" font-weight="800" fill="#334155">全局进度与考点库</text>
+
+                  <!-- 下拉连线 (直角/直线更显工程感) -->
+                  <path d="M 140 116 L 140 170" stroke="#3b82f6" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+                  <path d="M 380 116 L 380 170" stroke="#f43f5e" stroke-width="2" fill="none" marker-end="url(#arr-rose)"/>
+                  <path d="M 620 116 L 620 170" stroke="#8b5cf6" stroke-width="2" fill="none" marker-end="url(#arr-purple)"/>
+
+                  <!-- 中间三大支柱节点 (Short Window, Memory Card, Interview State) -->
+                  <!-- Left -->
+                  <rect x="40" y="176" width="200" height="68" rx="12" fill="#eff6ff" stroke="#3b82f6" stroke-width="2" filter="url(#shadow-soft)"/>
+                  <text x="140" y="206" text-anchor="middle" font-size="15" font-weight="900" fill="#1e3a8a">Short Window</text>
+                  <text x="140" y="226" text-anchor="middle" font-size="11" font-weight="600" fill="#2563eb">保留最近 5 轮高保真原文</text>
+
+                  <!-- Center -->
+                  <rect x="280" y="176" width="200" height="68" rx="12" fill="#fff1f2" stroke="#f43f5e" stroke-width="2" filter="url(#shadow-soft)"/>
+                  <text x="380" y="206" text-anchor="middle" font-size="15" font-weight="900" fill="#9f1239">Memory Card</text>
+                  <text x="380" y="226" text-anchor="middle" font-size="11" font-weight="600" fill="#e11d48">压缩后的事实与风险线索</text>
+
+                  <!-- Right -->
+                  <rect x="520" y="176" width="200" height="68" rx="12" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="2" filter="url(#shadow-soft)"/>
+                  <text x="620" y="206" text-anchor="middle" font-size="15" font-weight="900" fill="#5b21b6">Interview State</text>
+                  <text x="620" y="226" text-anchor="middle" font-size="11" font-weight="600" fill="#7c3aed">面试进度与覆盖度游标</text>
+
+                  <!-- 汇聚到 Next Context 的正交连线 -->
+                  <!-- Left to center-bottom -->
+                  <path d="M 140 244 L 140 276 L 300 276 L 300 306" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+                  <!-- Center straight down -->
+                  <path d="M 380 244 L 380 306" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+                  <!-- Right to center-bottom -->
+                  <path d="M 620 244 L 620 276 L 460 276 L 460 306" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+
+                  <!-- 防爆 Token 小标签 (压在连线上方) -->
+                  <rect x="330" y="265" width="100" height="22" rx="11" fill="#d1fae5" stroke="#34d399"/>
+                  <text x="380" y="280" text-anchor="middle" font-size="10" font-weight="800" fill="#065f46">防爆 Token</text>
+
+                  <!-- 底部核心容器：Next Prompt Context -->
+                  <rect x="230" y="312" width="300" height="74" rx="14" fill="#ecfdf5" stroke="#10b981" stroke-width="2.5" filter="url(#shadow-soft)"/>
+                  <text x="380" y="344" text-anchor="middle" font-size="18" font-weight="900" fill="#064e3b">Next Prompt Context</text>
+                  <text x="380" y="366" text-anchor="middle" font-size="12" font-weight="700" fill="#059669">按预算组装，尽量保留输出和重试余量</text>
+
+                  <!-- 持久化节点连线 -->
+                  <path d="M 380 386 L 380 420" stroke="#64748b" stroke-width="2" stroke-dasharray="5 5" fill="none" marker-end="url(#arr-slate)"/>
+
+                  <!-- 底座 DB Event -->
+                  <rect x="180" y="426" width="400" height="42" rx="8" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4 4"/>
+                  <text x="380" y="452" text-anchor="middle" font-size="13" font-weight="800" fill="#334155">写入 agent_events.context_compacted (支持重启后恢复)</text>
+                </svg>
+                
+                <div class="diagram-cards">
+                  <div class="d-card-row">
+                    <div class="d-card border-blue"><strong>Short Window</strong><span>滑窗截取近5轮保证连贯。</span></div>
+                    <div class="d-card border-rose"><strong>Memory Card</strong><span>保留关键事实、风险信号和待追问线索。</span></div>
+                    <div class="d-card border-purple"><strong>State Machine</strong><span>游标指明推进方向。</span></div>
+                  </div>
+                  <div class="d-arrow">Compact & Inject (防爆 Token)</div>
+                  <div class="d-card border-green" style="border-left-color:var(--color-emerald)"><strong>Context Next</strong><span>将载荷维持在可控响应窗口。</span></div>
+                  <div class="d-card border-blue" style="border-left-color:var(--border-base)"><strong>Event Sourcing</strong><span>持久化写入 DB 支持重启恢复。</span></div>
+                </div>
+              </div>
+              <div class="explanation-panel">
+                <div class="exp-box scenario-box">
+                  <span class="scene-label">长面试遗忘例子</span>
+                  <h4>第 3 轮说过的权限模块，第 25 轮还能接回来</h4>
+                  <p>第 3 轮小林说：“我做过 React 后台系统，主要负责权限模块和表格性能优化。”如果只看最近几轮，第 25 轮可能已经忘记权限模块还没深挖。</p>
+                  <div class="code-block">{
+  "candidate_facts": ["负责过权限模块", "做过表格性能优化"],
+  "risk_signals": ["权限模块个人贡献边界不清楚"],
+  "open_threads": ["追问角色、资源、菜单权限和按钮权限模型"]
+}</div>
+                  <div class="plain-example"><strong>第 25 轮追问：</strong>前面你提到权限模块还没展开，当时角色、资源、菜单权限和按钮权限之间是怎么建模的？</div>
+                </div>
+                <div class="exp-box">
+                  <h4>📉 拒绝“无限填鸭”神话</h4>
+                  <p>动辄几万 Token 的全量投喂会增加延迟和注意力噪声。这里通过 Memory Compaction 管线，把传递给模型的上下文尽量控制在留有输出余量的预算区间。</p>
+                </div>
+                <div class="exp-box">
+                  <h4>🤖 Summary Agent 的降级边界</h4>
+                  <p>如果配置允许，Summary Agent 才会参与梳理，生成语义更自然的卡片。但如果该 Agent 超时或输出异常，系统不等待，直接回退到底层的确定性 memory card，降低主链路中断风险。</p>
+                </div>
+                <div class="exp-box scenario-box">
+                  <span class="scene-label">重启恢复例子</span>
+                  <h4>checkpoint 不能只放内存</h4>
+                  <p>面试进行到第 18 轮，系统把压缩后的上下文写入 agent_events。后端重启后，内存没了，但可以从最新的 context_compacted event 恢复。</p>
+                  <div class="code-block">{
+  "event_type": "context_compacted",
+  "payload": {
+    "context_version": 3,
+    "last_turn_no": 18,
+    "candidate_facts": ["负责过权限模块", "优化过三万行表格渲染"],
+    "open_threads": ["追问权限模型", "追问虚拟滚动边界问题"]
+  }
+}</div>
+                  <div class="plain-example"><strong>大白话：</strong>面试官的临时草稿不能只放脑子里，要存到系统日志里，服务重启后还能捡回来继续问。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Topic 4: DB & Observability -->
+          <div class="topic-content topology-wrap" id="topic-db" data-view="visual">
+            <div class="topic-grid">
+              <div class="diagram-panel">
+                <svg class="diagram-svg" viewBox="0 0 500 300">
+                  <defs><marker id="arr-db" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#64748b"/></marker></defs>
+                  
+                  <rect x="40" y="30" width="120" height="50" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                  <text x="100" y="52" text-anchor="middle" font-size="12" font-weight="bold" fill="#334155">Raw Facts</text>
+                  <text x="100" y="68" text-anchor="middle" font-size="10" fill="#64748b">turns / configs</text>
+
+                  <rect x="190" y="30" width="120" height="50" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                  <text x="250" y="52" text-anchor="middle" font-size="12" font-weight="bold" fill="#334155">Derived</text>
+                  <text x="250" y="68" text-anchor="middle" font-size="10" fill="#64748b">metadata / evals</text>
+
+                  <rect x="340" y="30" width="120" height="50" rx="6" fill="#fffbeb" stroke="#fcd34d" stroke-width="2"/>
+                  <text x="400" y="52" text-anchor="middle" font-size="12" font-weight="bold" fill="#b45309">Events Log</text>
+                  <text x="400" y="68" text-anchor="middle" font-size="10" fill="#d97706">fallback / fails</text>
+
+                  <path d="M 100 80 L 100 110 L 230 110 L 230 140" stroke="#94a3b8" fill="none" marker-end="url(#arr-db)"/>
+                  <path d="M 250 80 L 250 140" stroke="#94a3b8" fill="none" marker-end="url(#arr-db)"/>
+                  <path d="M 400 80 L 400 110 L 270 110 L 270 140" stroke="#94a3b8" fill="none" marker-end="url(#arr-db)"/>
+
+                  <!-- Privacy Boundary -->
+                  <path d="M 20 160 L 480 160" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6 6" fill="none"/>
+                  <rect x="180" y="152" width="140" height="16" rx="8" fill="#fff1f2" stroke="#fecdd3"/>
+                  <text x="250" y="163" text-anchor="middle" font-size="9" font-weight="bold" fill="#be123c">Privacy Boundary (阻断内容泄露)</text>
+
+                  <rect x="150" y="200" width="200" height="60" rx="8" fill="#f0fdfa" stroke="#5eead4" stroke-width="2"/>
+                  <text x="250" y="225" text-anchor="middle" font-size="14" font-weight="bold" fill="#0f766e">Monitoring API</text>
+                  <text x="250" y="244" text-anchor="middle" font-size="10" fill="#0d9488">Rates / Counts / Fallback Stat</text>
+                </svg>
+
+                <div class="diagram-cards">
+                  <div class="d-card-row">
+                    <div class="d-card border-blue" style="border-left-color:var(--border-base)"><strong>Raw & Derived</strong><span>沉淀对话原始轨迹与机器客观判定。</span></div>
+                    <div class="d-card border-orange"><strong>Events Log</strong><span>详细追溯 RAG Miss、Fallback 介入等降级事件。</span></div>
+                  </div>
+                  <div class="d-arrow" style="color:#e11d48">隐私边界：Privacy Masking</div>
+                  <div class="d-card border-teal"><strong>Monitoring 沙箱</strong><span>不暴露原句，仅通过计数器展示系统健康信号。</span></div>
+                </div>
+              </div>
+              <div class="explanation-panel">
+                <div class="exp-box scenario-box">
+                  <span class="scene-label">静默失败例子</span>
+                  <h4>候选人还在正常面试，但后台评分已经坏了</h4>
+                  <p>AI 面试官还能继续问问题，小林也没有感觉异常。但 Evaluation Agent 因为 JSON 解析失败，连续多轮没有写入 turn_evaluations。</p>
+                  <div class="code-block">{
+  "evaluation": {
+    "coverage_rate": 0.35,
+    "failure_rate": 0.42,
+    "evaluation_failure_event_count": 8
+  },
+  "alerts": ["evaluation_failure_rate_high", "evaluation_coverage_rate_low"]
+}</div>
+                  <div class="plain-example"><strong>大白话：</strong>候选人看到“面试还能继续”，但系统知道“后台评分链路已经退化”。</div>
+                </div>
+                <div class="exp-box">
+                  <h4>👁️‍🗨️ 看健康，不看隐私</h4>
+                  <p>监控层只向上游 API 暴露 <code>rag_missed_count</code> 或 <code>fallback_success_rate</code>，帮助工程师发现“静默失败”，但不返回候选人简历文本、聊天内容、报告正文或 hidden memory。</p>
+                </div>
+                <div class="exp-box">
+                  <h4>🗄️ 为什么不用 Redis？</h4>
+                  <p>在核心架构选型上，如果把 checkpoint 只存在易失性 Redis 中，实例重启或缓存丢失后就可能无法恢复关键上下文。所以 ProView 当前将关键变迁写入 <code>agent_events</code> 作为 Single Source of Truth，保证关键状态可追溯。未来 Redis 会作为缓存、队列和协调层接入，但不替代数据库。</p>
+                </div>
+                <div class="exp-box scenario-box">
+                  <span class="scene-label">RAG 监控例子</span>
+                  <h4>没命中题库，不等于系统失败</h4>
+                  <p>用户填写“AI Agent 应用工程师”，知识库暂时没有匹配题库。系统记录 missed，但仍用 JD 关键词和通用工程能力继续问。</p>
+                  <div class="code-block">{
+  "event_type": "rag_retrieval_missed",
+  "payload": {
+    "stage": "opening",
+    "job_title_matched": false,
+    "questions_count": 0,
+    "scripts_count": 1,
+    "duration_ms": 42
+  }
+}</div>
+                  <div class="plain-example"><strong>大白话：</strong>RAG miss 说明知识库覆盖不够，不是面试链路坏了。事件积累多了，就知道哪些岗位需要补题库。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Topic 5: Report -->
+          <div class="topic-content topology-wrap" id="topic-report" data-view="visual">
+            <div class="topic-grid">
+              <div class="diagram-panel">
+                <svg class="diagram-svg" viewBox="0 0 500 320">
+                  <defs><marker id="arr-rep" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#64748b"/></marker></defs>
+                  
+                  <rect x="30" y="30" width="90" height="40" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/> <text x="75" y="54" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">Turns</text>
+                  <rect x="140" y="30" width="90" height="40" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/> <text x="185" y="54" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">Metadata</text>
+                  <rect x="250" y="30" width="90" height="40" rx="6" fill="#fffbeb" stroke="#fcd34d" stroke-width="2"/> <text x="295" y="54" text-anchor="middle" font-size="11" font-weight="bold" fill="#b45309">Evals DB</text>
+                  <rect x="360" y="30" width="90" height="40" rx="6" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/> <text x="405" y="54" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">Memory</text>
+
+                  <path d="M 75 70 L 75 100 L 230 100 L 230 130" stroke="#94a3b8" fill="none" marker-end="url(#arr-rep)"/>
+                  <path d="M 185 70 L 185 90 L 240 90 L 240 130" stroke="#94a3b8" fill="none" marker-end="url(#arr-rep)"/>
+                  <path d="M 295 70 L 295 90 L 260 90 L 260 130" stroke="#94a3b8" fill="none" marker-end="url(#arr-rep)"/>
+                  <path d="M 405 70 L 405 100 L 270 100 L 270 130" stroke="#94a3b8" fill="none" marker-end="url(#arr-rep)"/>
+
+                  <rect x="160" y="130" width="180" height="50" rx="8" fill="#e0e7ff" stroke="#818cf8" stroke-width="2"/>
+                  <text x="250" y="155" text-anchor="middle" font-size="14" font-weight="bold" fill="#4338ca">Report Agent</text>
+                  <text x="250" y="172" text-anchor="middle" font-size="10" fill="#4f46e5">云端大模型汇聚推导</text>
+
+                  <path d="M 250 180 L 250 230" stroke="#818cf8" stroke-width="2" fill="none" marker-end="url(#arr-rep)"/>
+                  <rect x="200" y="230" width="100" height="40" rx="6" fill="#e0e7ff" stroke="#a5b4fc" stroke-width="1"/>
+                  <text x="250" y="254" text-anchor="middle" font-size="12" font-weight="bold" fill="#3730a3">Final Report</text>
+
+                  <!-- Fallback Bypass -->
+                  <path d="M 295 70 L 370 70 L 370 200 L 320 200" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 4" fill="none" marker-end="url(#arr-dash)"/>
+                  <rect x="330" y="140" width="80" height="40" rx="6" fill="#fffbeb" stroke="#fcd34d" stroke-width="1" stroke-dasharray="2 2"/>
+                  <text x="370" y="164" text-anchor="middle" font-size="10" font-weight="bold" fill="#b45309">Rule Fallback</text>
+                  <text x="370" y="220" text-anchor="middle" font-size="10" font-weight="bold" fill="#b45309">如果 LLM 异常，基于 Evals 生成基础报告</text>
+                </svg>
+
+                <div class="diagram-cards">
+                  <div class="d-card-row">
+                    <div class="d-card border-blue" style="border-left-color:var(--border-base)"><strong>碎片化证据</strong><span>抓取散落在底层的几十次 Turn 评分。</span></div>
+                  </div>
+                  <div class="d-arrow">Aggregation (拒绝盲猜)</div>
+                  <div class="d-card-row">
+                    <div class="d-card border-purple"><strong>Report Agent</strong><span>基于实锤证据按维度拼装。</span></div>
+                    <div class="d-card border-orange"><strong>Fallback 保底</strong><span>大模型接口崩溃，提取客观分生成图表。</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="explanation-panel">
+                <div class="exp-box scenario-box">
+                  <span class="scene-label">报告证据例子</span>
+                  <h4>报告不是总结聊天，而是整理全过程证据</h4>
+                  <p>面试结束后，Report Agent 聚合每轮沉淀下来的事实和评分，而不是把完整聊天记录交给模型凭印象写。</p>
+                  <div class="code-block">第 4 轮：小林提到虚拟滚动，但没有指标
+第 5 轮：补充三万行数据，首屏 2.8s -> 900ms
+第 8 轮：说明 Chrome Performance 定位 DOM 节点过多
+第 12 轮：权限模块只说明页面实现，对资源模型解释不充分
+
+报告片段：
+性能优化：8/10
+证据：能说明三万行场景、虚拟滚动、接口分页和量化结果
+风险：动态高度、滚动白屏、缓存一致性说明不足</div>
+                  <div class="plain-example"><strong>大白话：</strong>报告像整理全过程面试官笔记，不是最后让模型凭感觉写评价。</div>
+                </div>
+                <div class="exp-box">
+                  <h4>报告基于证据聚合</h4>
+                  <p>报告不走“把完整聊天记录发给大模型自由总结”的路径。关键结论会尽量关联到中途记录的 <code>turn_evaluations</code>。证据不足时，系统标记“信息不足”，避免给出过度判断。</p>
+                </div>
+                <div class="exp-box">
+                  <h4>🛬 主报告失败时的保底路径</h4>
+                  <p>假设最终写报告时大模型 API 异常，系统不会只返回报错。依赖前期的 Evaluations 数据结构，Fallback 机制可以利用预设模板，通过查表生成一份基础但可用的数据指标报告。</p>
+                </div>
+                <div class="exp-box scenario-box">
+                  <span class="scene-label">Fallback 报告例子</span>
+                  <h4>主报告 LLM 失败，也能拿到基础报告</h4>
+                  <p>如果最终报告生成时云端 LLM 失败，系统基于 turn_evaluations 生成模板化报告。</p>
+                  <div class="code-block">{
+  "report_source": "structured_fallback",
+  "summary": "主报告生成失败，系统基于过程评分生成基础报告。",
+  "dimensions": [
+    { "dimension": "性能优化", "avg_score": 8, "evidence_count": 3 },
+    { "dimension": "问题定位", "avg_score": 7, "evidence_count": 2 }
+  ]
+}</div>
+                  <div class="plain-example"><strong>大白话：</strong>这份报告不一定华丽，但它仍然来自真实过程评分，用户不会只看到一个报错。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Production Evolution -->
+      <section class="architecture-section" id="production-evolution">
+        <h2 class="section-title">高并发、高可用、高稳定性演进计划</h2>
+        <p class="section-subtitle">这部分明确区分当前本地优先架构、Backend V1 Freeze 后增强，以及未来 Cloud / SaaS 生产化目标。当前版本不宣称已经完成高并发云端部署。</p>
+
+        <div class="stage-grid">
+          <article class="stage-card current">
+            <h3>当前本地优先架构</h3>
+            <ul>
+              <li>Electron + Flask + SQLite，适合本地桌面端和单用户场景。</li>
+              <li>Direct SQLite structured source 保存 turns、metadata、evaluations、agent_events。</li>
+              <li>进程内上下文缓存只做加速，agent_events 是 checkpoint 恢复事实源。</li>
+              <li>Evaluation、Memory、Report、Monitoring 作为 sidecar 增强链路，失败不阻塞下一问。</li>
+            </ul>
+          </article>
+
+          <article class="stage-card freeze">
+            <h3>Backend V1 Freeze 后增强</h3>
+            <ul>
+              <li>真实短面试 smoke：确认 structured turns、metadata、evaluations、final report evidence。</li>
+              <li>长面试 compaction smoke：验证 context_compacted event、latest mirror、rehydrate 和去重写入。</li>
+              <li>Monitoring / Learning endpoints smoke：只返回聚合指标和人工审核候选建议。</li>
+              <li>Learning LLM staging smoke：默认关闭，异常 fallback，不影响面试。</li>
+            </ul>
+          </article>
+
+          <article class="stage-card future">
+            <h3>Cloud / SaaS 生产化目标</h3>
+            <ul>
+              <li>Flask API 无状态化，PostgreSQL 作为云端权威事实源。</li>
+              <li>Redis 承担 session cache、prompt cache、agent queue、distributed lock。</li>
+              <li>Agent Worker Pool 处理 Evaluation、Summary、Report，配合 retry 和 dead letter queue。</li>
+              <li>模型 provider fallback、限流、熔断、超时、健康检查、备份和恢复演练。</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="capability-grid">
+          <article class="capability-card">
+            <h3>高并发规划</h3>
+            <ul>
+              <li>API 无状态化，SSE 连接治理。</li>
+              <li>Redis 缓存 session context、prompt context 和 RAG top chunks。</li>
+              <li>Agent 任务队列削峰，worker pool 水平扩展。</li>
+              <li>LLM 调用并发限制，同一 session_id 使用分布式锁避免重复生成下一问或报告。</li>
+            </ul>
+          </article>
+
+          <article class="capability-card">
+            <h3>高可用规划</h3>
+            <ul>
+              <li>PostgreSQL 是权威事实源，Redis 只做缓存和协调层。</li>
+              <li>数据库备份、恢复演练和 API health check。</li>
+              <li>多模型 provider fallback，报告生成 fallback。</li>
+              <li>Summary Agent 默认关闭或短超时，Monitoring 失败不影响主流程。</li>
+            </ul>
+          </article>
+
+          <article class="capability-card">
+            <h3>高稳定性规划</h3>
+            <ul>
+              <li>timeout、retry、idempotent upsert、fallback report。</li>
+              <li>context checkpoint rehydrate，避免后端重启后丢关键上下文。</li>
+              <li>evaluation coverage、RAG hit/miss/failure、report success/fallback 监控。</li>
+              <li>全量 unittest、真实流程 smoke、长面试故障演练。</li>
+            </ul>
+          </article>
+
+          <article class="capability-card">
+            <h3>隐私与安全边界</h3>
+            <ul>
+              <li>Candidate UI 不展示 hidden metadata、score、evidence 或 checkpoint。</li>
+              <li>Monitoring 只返回 counts、rates、categories、status、alerts。</li>
+              <li>Learning suggestions 必须 human review，不自动改 Prompt / Rubric / RAG / 题库 / HR script。</li>
+            </ul>
+          </article>
+        </div>
+
+        <div class="privacy-boundary">
+          <strong>Monitoring / Learning 明确不返回的内容</strong>
+          <p>不返回候选人回答、问题原文、报告正文、evidence 原文、suggestion 原文、hidden memory、checkpoint payload、RAG query 或 RAG document content。它们只读安全聚合投影，用来诊断系统健康和生成可审核的改进建议。</p>
+        </div>
+      </section>
+
+      <!-- Roadmap -->
+      <section class="architecture-section" id="layer-roadmap">
+        <h2 class="section-title">按架构层拆分的下一步 Roadmap</h2>
+        <p class="section-subtitle">这里不照搬升级计划的 Phase，而是映射到架构层，方便面试时说明“当前已完成什么、下一步为什么做这些”。</p>
+
+        <div class="roadmap-grid">
+          <article class="roadmap-card">
+            <span class="roadmap-phase">Data Facts Layer</span>
+            <h3>数据事实层</h3>
+            <ul>
+              <li>Backend V1 freeze，完成真实短面试 smoke。</li>
+              <li>验收 structured turns / metadata / evaluations 和 final report evidence schema。</li>
+              <li>设计 Supabase / PostgreSQL structured migration。</li>
+              <li>远程表主键、唯一约束、索引、隐私字段隔离和 Direct SQLite 返回 shape 对齐。</li>
+            </ul>
+          </article>
+
+          <article class="roadmap-card">
+            <span class="roadmap-phase">RAG Layer</span>
+            <h3>RAG 层</h3>
+            <ul>
+              <li>建立 100 到 300 条评估 query，覆盖面试出题和报告场景。</li>
+              <li>记录 RAG query log、retrieved items 和 context packing 结果。</li>
+              <li>建立多策略实验框架：规则 rerank -> cross-encoder rerank -> offline LLM rerank。</li>
+              <li>控制 token、去重、保留 source id，低质 chunk 标记 suspicious / quarantine。</li>
+            </ul>
+          </article>
+
+          <article class="roadmap-card">
+            <span class="roadmap-phase">Memory Layer</span>
+            <h3>Memory 层</h3>
+            <ul>
+              <li>长面试 context compaction smoke，验证 context_compacted event 和 latest.json 镜像。</li>
+              <li>验证后端重启后 rehydrate，同一 latest answered turn 不重复写 checkpoint。</li>
+              <li>Summary Agent staging，评估独立 client/config 的生产化必要性。</li>
+              <li>未来引入 memory chunk embedding，并按当前回答召回相关 memory chunks。</li>
+            </ul>
+          </article>
+
+          <article class="roadmap-card">
+            <span class="roadmap-phase">Monitoring / Learning</span>
+            <h3>Monitoring / Learning 层</h3>
+            <ul>
+              <li>Monitoring endpoints smoke，Learning signal-summary smoke。</li>
+              <li>Learning suggestions staging，Operator UI 可选。</li>
+              <li>只展示 aggregate monitoring / learning，建议进入审核队列。</li>
+              <li>维护 approved / rejected / archived 状态和 prompt / rubric / RAG change proposal tracking。</li>
+            </ul>
+          </article>
+
+          <article class="roadmap-card">
+            <span class="roadmap-phase">Production Layer</span>
+            <h3>生产化层</h3>
+            <ul>
+              <li>PostgreSQL 云端权威事实源，Redis session cache / prompt cache / queue / lock。</li>
+              <li>Agent worker pool、retry queue、dead letter queue。</li>
+              <li>模型 provider fallback、限流、熔断、SSE 连接治理。</li>
+              <li>压测、告警、灰度发布、数据库备份和恢复演练。</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal -->
+  <div class="backdrop" id="nodeModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <div>
+          <h3 id="modalTitle">Node Title</h3>
+          <p id="modalSubtitle">Subtitle explanation</p>
+        </div>
+        <button class="btn-close" id="btnCloseModal"><svg class="icon-lucide" width="20" height="20" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid" id="modalContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADR Drawer -->
+  <div class="backdrop drawer-backdrop" id="adrDrawer" aria-hidden="true">
+    <aside class="drawer" role="dialog" aria-modal="true">
+      <div class="modal-head" style="background:#fff;">
+        <h3 style="font-size: 20px;">架构决策 (ADRs)</h3>
+        <button class="btn-close" id="btnCloseAdr"><svg class="icon-lucide" width="20" height="20" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      </div>
+      <div class="drawer-body" id="adrList">
+        <!-- JS Injected -->
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    // Data definition for nodes (retained from original + optimized wording)
+    const nodesData = {
+      config: {
+        title: "配置层 (Config)",
+        subtitle: "拒绝噪声，提纯非结构化输入",
+        panels: [
+          { title: "架构定位", body: "把 JD、简历、岗位目标和面试难度整理成稳定的面试配置，后续每一轮不用重新读完整材料。" },
+          { title: "设计价值", body: "长文本不直接参与每轮 Prompt 拼接，而是先形成 InterviewState 的初始特征快照，指导后续动态上下文装载。" },
+          { title: "真实流程例子", type: "scenario", body: `JD 里写“需要复杂表格性能优化经验”，简历里写“使用虚拟滚动优化大表格卡顿”。系统先整理成面试官笔记：\n\n{\n  "job_requirements": ["复杂表格性能优化", "React 后台系统经验", "问题定位和量化结果"],\n  "candidate_facts": ["做过 React 后台管理系统", "提到虚拟滚动优化大表格"],\n  "risk_signals": ["没有写优化前后指标", "权限模块个人贡献边界不清楚"],\n  "next_followups": ["追问卡顿瓶颈", "追问渲染耗时", "追问权限模型"]\n}\n\n大白话：这一步就像面试前先帮面试官读简历，把“值得问”和“需要验证”的地方划出来。` },
+          { title: "为什么这样选", body: "本地优先桌面端里，先把非结构化输入整理成稳定配置，比每轮都重新解析完整 JD 和简历更可控，也能减少 prompt 噪声。" },
+          { title: "可观测 / 测评指标", body: "配置解析完整度、岗位/技能关键词覆盖率、risk_signals 命中数、后续 question_metadata 继承率。" },
+          { title: "当前状态 / 下一步", body: "当前已作为面试初始上下文来源；下一步可把 JD、简历和题库结构化结果纳入更稳定的版本记录。" },
+          { title: "容灾与兜底", body: "如果解析不完整，系统仍保留原始输入引用，并用规则提取岗位、技能和项目关键字作为基座上下文。" }
+        ]
+      },
+      context: {
+        title: "上下文构建层 (Context Builder)",
+        subtitle: "RAG：智能的 Context Selector",
+        panels: [
+          { title: "架构定位", body: "根据当前阶段、历史对话和候选人事实，挑选最相关的 JD、简历与题库切片，为模型注入当前轮真正需要的证据。" },
+          { title: "大白话解释", type: "scenario", body: `Context Builder 不是负责回答问题的模块，而是每一轮提问前帮面试官 AI 准备“这一轮该看的材料”。\n\n可以理解成：\nConfig 是面试前整理简历；\nContext Builder 是每一轮提问前翻笔记、找证据、挑重点；\nInterview Agent 才是真正开口问问题的面试官。\n\n如果当前聊到性能优化，它会从简历里拿“大表格优化”，从 JD 里拿“复杂表格性能优化要求”，从题库里拿“性能优化评分标准”，再从历史里拿“候选人刚说用了虚拟滚动但没说指标”。最后打包成这一轮最该看的上下文。` },
+          { title: "真实流程例子", type: "scenario", body: `面试进入性能优化阶段时，系统不会问“你做过哪些项目？”。它知道小林简历里有大表格优化，JD 又要求复杂表格性能，于是 RAG 召回性能优化 rubric：瓶颈定位、优化动作、量化结果、方案权衡。\n\n最终问题变成：\n“你简历里提到做过大表格性能优化。当时卡顿主要发生在哪个环节？你是怎么定位的？优化后数据量、首屏渲染耗时或者滚动 FPS 有什么变化？”\n\n大白话：RAG 不是让模型知道更多，而是让模型只看这一轮最该看的材料。` },
+          { title: "设计价值", body: "全量引入会导致注意力涣散。RAG 在这里不是 QA，而是 Context Selector，负责把当前最有用的证据打包为 Context Pack。" },
+          { title: "为什么这样选", body: "把 RAG 放在 Context Builder 里，是为了让检索服务于当前面试阶段、候选人事实和评分口径，而不是做一个孤立问答功能。" },
+          { title: "可观测 / 测评指标", body: "RAG hit/miss/failure、precision、recall、faithfulness、context relevance、latency、token cost、context packing token 占用。" },
+          { title: "当前状态 / 下一步", body: "当前已有基础检索和 RAG retrieval monitoring；下一步建立评估集、query log、多策略实验、rerank 和 context packing 日志。" },
+          { title: "容灾与兜底", body: "RAG Miss 时，系统会用关键词归类、弱追问继承上一轮 metadata、综合表现兜底，保证评分口径稳定。" }
+        ]
+      },
+      interview: {
+        title: "交互层 (Interview Agent)",
+        subtitle: "低延迟主链路，负责自然连续对话",
+        panels: [
+          { title: "架构定位", body: "唯一直接面对候选人的主链路节点，负责自然、连续、低延迟的面试追问，不承担繁重评分和总结任务。" },
+          { title: "真实流程例子", type: "scenario", body: `候选人看到的问题：\n“你能讲一下当时大表格卡顿主要发生在哪个环节，以及你是怎么定位的吗？”\n\n后台保存的 metadata：\n{\n  "turn_no": 4,\n  "dimension": "性能优化",\n  "rubric": "是否能说明瓶颈、定位过程、优化动作和量化结果",\n  "pass_criteria": "至少说明一个明确瓶颈、一个定位方法、一个优化动作和一个结果指标",\n  "source": "rag_reused_rubric"\n}\n\n大白话：面试官问一句自然问题，但系统心里知道这题在考什么。` },
+          { title: "设计价值", body: "Visible Output / Hidden Metadata 分离。前端只渲染自然语言，后端维护 dimension、rubric、pass criteria，避免 JSON 泄露和解析失败拖垮体验。" },
+          { title: "为什么这样选", body: "Interview Agent 的主职责是自然提问和节奏控制，不让它同时承担复杂评分、报告和长摘要任务，可以降低延迟和输出格式风险。" },
+          { title: "可观测 / 测评指标", body: "SSE 首 token 延迟、下一问生成成功率、JSON 泄露计数、重复提问率、fallback question count、question_metadata 完整率。" },
+          { title: "当前状态 / 下一步", body: "当前保留候选人可见主链路；下一步通过真实短面试 smoke 验证问题自然度和上下文连续性。" },
+          { title: "容灾与兜底", body: "若 metadata 生成失败，状态机会依据题库命中、关键词归类或上一轮继承补齐 dimension 与 rubric，对话不停滞。" }
+        ]
+      },
+      candidate: {
+        title: "候选人体验 (Candidate UI)",
+        subtitle: "被极其克制地保护的前台视界",
+        panels: [
+          { title: "架构定位", body: "候选人只看到自然语言问题和自己的回答，不看到评分、rubric、hidden memory、checkpoint 或 agent_events。" },
+          { title: "真实流程例子", type: "scenario", body: `候选人看到的是：\n“你刚才提到用了虚拟滚动。我想再确认一下，当时大概是多少数据量？优化前后的首屏渲染耗时有变化吗？”\n\n候选人看不到：\n- pass_criteria\n- score\n- risk_signal\n- suggestion\n- hidden memory card\n\n大白话：系统把后台评估悄悄变成下一句自然追问，不打断候选人。` },
+          { title: "为什么这样选", body: "实时展示评分会干扰候选人表达，也会把面试体验变成考试系统。候选人可见层只保留自然对话和最终报告。" },
+          { title: "当前状态 / 下一步", body: "当前 Candidate UI 不展示 JSON、rubric、score、evidence、hidden memory 或 learning suggestions；后续即使增加 operator UI，也应与候选人 UI 分离。" },
+          { title: "交互边界", body: "每次提交会转化为 interview_turns，然后非阻塞触发 Evaluation、Memory、Observability 等旁路任务。" }
+        ]
+      },
+      evaluation: {
+        title: "后台评估层 (Evaluation Agent Sidecar)",
+        subtitle: "异步分析回答，提炼结构化证据",
+        panels: [
+          { title: "架构定位", body: "依据当轮 metadata 和 rubric，异步分析候选人回答，写入 turn_evaluations，不阻塞下一问。" },
+          { title: "真实流程例子", type: "scenario", body: `候选人回答：\n“当时表格大概有三万行数据，直接渲染会卡住。我用 Chrome Performance 看了一下，主要耗时在 DOM 节点太多和滚动重排。后来用了虚拟滚动和接口分页，首屏从 2.8 秒降到 900 毫秒左右。”\n\n系统按两个主维度写入：\n[\n  {\n    "dimension": "性能优化",\n    "score": 8,\n    "evidence": "说明三万行数据、虚拟滚动、接口分页、2.8s -> 900ms",\n    "suggestion": "追问虚拟滚动边界情况和白屏处理"\n  },\n  {\n    "dimension": "问题定位",\n    "score": 7,\n    "evidence": "提到 Chrome Performance 定位 DOM 节点过多和滚动重排",\n    "suggestion": "追问如何确认主要瓶颈不是接口慢"\n  }\n]\n\n大白话：同一句回答，既能看技术方案，也能看他是否会定位问题。` },
+          { title: "设计价值", body: "把长耗时评估从主交互链路中移开。评估结果可以变成后续追问和最终报告证据。" },
+          { title: "为什么这样选", body: "不把评分放在主链路，是为了避免候选人等待评分结果；按 turn_id 评估，能避免上下文截断后评分错位；每轮最多两个主维度，用来控制成本和延迟。" },
+          { title: "可观测 / 测评指标", body: "evaluation.coverage_rate、evaluation.failure_rate、turn_evaluation_failed count、average evaluation latency、JSON parse failure count、evidence completeness。" },
+          { title: "当前状态 / 下一步", body: "Backend V1 已支持按 turn 评估、最多两个主维度、幂等 upsert；下一步做真实流程 smoke 和评估延迟监控。" },
+          { title: "容灾与兜底", body: "评估超时只意味着本轮缺少精细打分，系统记录失败事件并继续下一环节，主对话不崩。" }
+        ]
+      },
+      memory: {
+        title: "记忆压缩层 (Memory Agent Sidecar)",
+        subtitle: "压缩长对话，保留关键事实",
+        panels: [
+          { title: "架构定位", body: "应对长面试导致的 token 膨胀，把早期重要线索压缩成 hidden memory card 和 context checkpoint。" },
+          { title: "真实流程例子", type: "scenario", body: `第 3 轮小林说：\n“我做过 React 后台系统，主要负责权限模块和表格性能优化。”\n\n到了第 25 轮，如果只看最近几轮，模型可能忘记权限模块还没深挖。Memory card 保存：\n{\n  "candidate_facts": ["负责过权限模块", "做过表格性能优化"],\n  "risk_signals": ["权限模块个人贡献边界不清楚"],\n  "open_threads": ["追问角色、资源、菜单权限和按钮权限模型"]\n}\n\n所以第 25 轮还能问：\n“前面你提到权限模块还没展开，当时角色、资源、菜单权限和按钮权限之间是怎么建模的？”\n\n大白话：模型不是背完整聊天记录，而是旁边放了一张面试官笔记卡。` },
+          { title: "设计价值", body: "短期滑动窗口负责最近对话接得上，Memory Card 负责不忘早期线索，InterviewState 负责知道面试推进到哪里。" },
+          { title: "为什么这样选", body: "不用完整历史拼接，是为了控制 token 和延迟；不用只靠内存，是为了后端重启后能恢复；Summary Agent 只是增强，不作为主流程必需依赖。" },
+          { title: "可观测 / 测评指标", body: "context_compacted_event_count、latest_context_version、context_summary_failure_event_count、open_thread_count、estimated_tokens。" },
+          { title: "当前状态 / 下一步", body: "已有 deterministic checkpoint、agent_events 恢复、本地 mirror 和 context monitoring；下一步做长面试 smoke、Summary Agent staging 和未来 memory chunk embedding。" },
+          { title: "容灾与兜底", body: "Summary Agent 只是增强；失败时回退确定性 memory card。checkpoint 写入 agent_events.context_compacted，重启后可恢复。" }
+        ]
+      },
+      observability: {
+        title: "可观测沙箱 (Observability)",
+        subtitle: "聚合健康信号与隐私边界",
+        panels: [
+          { title: "架构定位", body: "捕获多 Agent 链路里的静默失败，以事件和聚合指标判断系统是否健康。" },
+          { title: "真实流程例子", type: "scenario", body: `候选人还在正常面试，AI 也能继续问问题。但后台 Evaluation Agent 因为 JSON 解析失败，连续多轮没写入 turn_evaluations。\n\n监控看到：\n{\n  "evaluation": {\n    "coverage_rate": 0.35,\n    "failure_rate": 0.42,\n    "evaluation_failure_event_count": 8\n  },\n  "alerts": ["evaluation_failure_rate_high", "evaluation_coverage_rate_low"]\n}\n\n大白话：候选人看到“面试还能继续”，但系统知道“后台评分链路已经退化”。监控不是看候选人说什么，而是看系统有没有健康工作。` },
+          { title: "设计价值", body: "严守看健康不看隐私。监控只传 counts、rates、failure categories、fallback 状态，不暴露原句、简历或报告正文。" },
+          { title: "为什么这样选", body: "Monitoring 只观察系统健康，不查看候选人内容。它用于发现异步 Agent 静默失败，不参与候选人主流程决策。" },
+          { title: "可观测 / 测评指标", body: "health-summary、agent-events rollup、report-generation、rag-retrieval、diagnostic-summary、evaluation-coverage、context-compaction。" },
+          { title: "隐私边界", body: "不返回候选人回答、问题原文、report body、evidence 原文、hidden memory、checkpoint payload、RAG query 或 document content。" },
+          { title: "当前状态 / 下一步", body: "当前 Monitoring API 返回聚合指标；下一步做 endpoint smoke 和可选 operator-only UI，但不接入候选人 UI。" }
+        ]
+      },
+      report: {
+        title: "最终报告组装 (Report Agent)",
+        subtitle: "依靠证据拼接，而不是虚构总结",
+        panels: [
+          { title: "架构定位", body: "面试结束后聚合 turns、metadata、evaluations、memory checkpoint 和 RAG evidence，生成可追溯报告。" },
+          { title: "真实流程例子", type: "scenario", body: `报告不是最后总结聊天，而是聚合过程证据：\n\n第 4 轮：小林提到虚拟滚动，但没有指标。\n第 5 轮：补充三万行数据，首屏 2.8s -> 900ms。\n第 8 轮：说明 Chrome Performance 定位 DOM 节点过多。\n第 12 轮：权限模块只说明页面实现，对资源模型解释不充分。\n\n报告片段：\n性能优化：8/10\n证据：能说明三万行场景、虚拟滚动、接口分页和量化结果。\n风险：对动态高度、滚动白屏、缓存一致性说明不足。\n\n大白话：报告像整理全过程面试官笔记，不是让模型凭印象写评价。` },
+          { title: "为什么这样选", body: "最终报告需要跨轮次聚合，而不是读取当前 Agent 窗口。把报告建立在 turns、metadata、evaluations 和 checkpoint 上，更容易说明结论来自哪里。" },
+          { title: "可观测 / 测评指标", body: "report_generation.success_count、failure_count、fallback_success_count、evidence coverage、dimension completeness、format repair count。" },
+          { title: "当前状态 / 下一步", body: "当前支持结构化 evidence schema 和模板 fallback；下一步通过真实面试 smoke 验证证据覆盖和报告可读性。" },
+          { title: "容灾与兜底", body: "主报告 LLM 失败时，系统基于 turn_evaluations 生成模板化 fallback 报告，简陋但能给出可用维度和证据数量。" }
+        ]
+      },
+      database: {
+        title: "持久化底座 (SSOT Database)",
+        subtitle: "Immutable Event Sourcing",
+        panels: [
+          { title: "架构定位", body: "保存原始 turn、派生证据、checkpoint、报告快照和不可变事件日志，是系统恢复和追溯的事实源。" },
+          { title: "真实流程例子", type: "scenario", body: `第 18 轮系统生成 checkpoint：\n{\n  "event_type": "context_compacted",\n  "payload": {\n    "context_version": 3,\n    "last_turn_no": 18,\n    "candidate_facts": ["负责过权限模块", "优化过三万行表格渲染"],\n    "open_threads": ["追问权限模型", "追问虚拟滚动边界问题"]\n  }\n}\n\n如果后端重启，内存里的 checkpoint 没了；系统从 agent_events 找最新 context_compacted 恢复。如果最新回答仍然是第 18 轮，就复用，不重复写事件。\n\n大白话：面试官的临时草稿不能只放脑子里，要存到系统日志里。` },
+          { title: "为什么这样选", body: "多 Agent 协作必须围绕同一事实源。数据库保存原始事实和派生结果，Redis 或内存只适合做加速和协调，不适合作为唯一事实源。" },
+          { title: "可观测 / 测评指标", body: "断线恢复、幂等写入、checkpoint rehydrate、报告 evidence 追溯、agent_events failure rollup、structured route smoke。" },
+          { title: "当前状态 / 下一步", body: "Direct SQLite structured source 已打通；下一步设计 PostgreSQL / Supabase structured migration，补远程表约束、索引和隐私隔离。" },
+          { title: "架构取舍 (Redis)", body: "当前不把 Redis 作为核心状态库。数据库负责准和可恢复；未来多用户、多 worker 时，Redis 可做 cache、queue、lock，但不替代事实源。" }
+        ]
+      }
+    };
+
+    const adrData = [
+      {
+        title: "ADR 1：为什么不用全量 prompt 拼接",
+        core: "Token Budget / RAG Context Selector",
+        fields: {
+          "背景": "JD、简历、题库和长对话历史都很长，直接全量拼接会增加 token 成本、延迟和注意力噪声。",
+          "选择": "使用结构化配置、RAG context selector、短期窗口和 hidden memory card 共同构建当前轮上下文。",
+          "放弃的方案": "不把完整 JD、完整简历、完整题库和完整聊天历史每轮都塞进 prompt。",
+          "收益": "当前轮上下文更聚焦，评分口径更稳定，也为长面试压缩和恢复留下空间。",
+          "代价": "需要维护检索、context packing、fallback 和监控指标，不能只依赖一个大 prompt。",
+          "未来演进": "建立 RAG 评估集、query log、rerank 和 context packing 实验框架。"
+        }
+      },
+      {
+        title: "ADR 2：为什么候选人可见输出和 hidden metadata 分离",
+        core: "Output / Metadata Boundary",
+        fields: {
+          "背景": "面试官 LLM 如果同时输出自然问题和复杂 JSON，容易增加延迟、解析失败和前端泄露风险。",
+          "选择": "候选人只看到自然语言问题；dimension、rubric、pass criteria、score、evidence 和 checkpoint 保留在后端。",
+          "放弃的方案": "不让前端直接消费大块 LLM JSON，也不把评分元数据展示在实时面试界面。",
+          "收益": "对话体验更自然，候选人不会被内部评分打断，后台仍可沉淀可追溯结构化事实。",
+          "代价": "需要后端补齐 metadata 生成、继承和兜底规则。",
+          "未来演进": "保留未来 structured question object 的增强入口，但必须经过字段校验和泄露检查。"
+        }
+      },
+      {
+        title: "ADR 3：为什么 Evaluation / Memory 是异步 sidecar",
+        core: "主链路保护",
+        fields: {
+          "背景": "评分、摘要和报告生成都可能耗时，也更容易出现结构化输出失败。",
+          "选择": "Interview Agent 负责候选人可见下一问；Evaluation、Memory、Report、Learning 都作为增强链路异步运行。",
+          "放弃的方案": "不让候选人等待上一轮评分完成后再看到下一问。",
+          "收益": "主对话更流畅，后台能力可以逐步增强，sidecar 失败时主链路仍可继续。",
+          "代价": "需要 agent_events、幂等 upsert、fallback、coverage monitoring 来管理异步一致性。",
+          "未来演进": "云端阶段引入 Agent Worker Pool、retry queue 和 dead letter queue。"
+        }
+      },
+      {
+        title: "ADR 4：为什么当前不用 Redis 做事实源",
+        core: "Database / SSOT",
+        fields: {
+          "背景": "当前产品以本地桌面端和单机后端为主，核心诉求是可追溯、可恢复、部署复杂度可控。",
+          "选择": "当前使用数据库和 agent_events 作为权威事实源，进程内缓存只做加速。",
+          "放弃的方案": "不把 Redis 作为 checkpoint 或 session state 的唯一存储。",
+          "收益": "后端重启后可以从持久化事件恢复关键上下文，降低状态丢失风险。",
+          "代价": "当前不适合直接支撑多 worker 高并发部署。",
+          "未来演进": "云端部署时引入 Redis 做 session cache、prompt cache、Agent queue 和 distributed lock，但不替代数据库。"
+        }
+      },
+      {
+        title: "ADR 5：为什么 checkpoint 先写 agent_events",
+        core: "Context Rehydrate",
+        fields: {
+          "背景": "长面试压缩结果如果只存在内存里，后端重启后会丢失；新增专用表又会扩大当前存储变更面。",
+          "选择": "先复用 agent_events.context_compacted 保存 hidden checkpoint payload，本地 latest.json 只是镜像。",
+          "放弃的方案": "当前阶段不新增 checkpoint 表，不把 checkpoint 只放内存或 Redis。",
+          "收益": "以较小改动获得重启恢复、监控聚合和失败追踪能力。",
+          "代价": "event payload 需要规范化，未来查询量变大时可能需要专用表。",
+          "未来演进": "Supabase / PostgreSQL structured migration 时评估独立 checkpoint 表或 materialized view。"
+        }
+      },
+      {
+        title: "ADR 6：为什么 Learning LLM 默认关闭且只读",
+        core: "Learning Safety",
+        fields: {
+          "背景": "Learning 能发现问题质量、RAG 覆盖和评分口径问题，但如果自动修改系统，容易污染 Prompt、Rubric 或题库。",
+          "选择": "Learning LLM 默认关闭，只消费安全聚合投影，输出 requires_human_review 的候选建议。",
+          "放弃的方案": "不让 Learning LLM 读取 raw trace、候选人回答、报告正文、evidence 原文或 RAG 文档内容。",
+          "收益": "可以形成离线改进闭环，同时避免候选人隐私进入公共知识库。",
+          "代价": "改进不会自动上线，需要人工审核和离线评测。",
+          "未来演进": "增加审核队列、approved / rejected / archived 状态和 change proposal tracking。"
+        }
+      },
+      {
+        title: "ADR 7：未来为什么引入 Redis / PostgreSQL / worker pool",
+        core: "Cloud Production Path",
+        fields: {
+          "背景": "本地优先架构适合桌面端和单用户场景，但多用户 SaaS 需要并发治理、任务削峰和故障隔离。",
+          "选择": "未来 API 无状态化，PostgreSQL 做权威事实源，Redis 做缓存、队列和锁，worker pool 处理 sidecar 任务。",
+          "放弃的方案": "不把单机 SQLite + 进程内缓存直接宣称为云端高并发终局。",
+          "收益": "可以水平扩展后台任务，控制同一 session 并发写入，并通过 provider fallback 提升可用性。",
+          "代价": "部署、监控、数据迁移和故障演练复杂度都会上升。",
+          "未来演进": "压测、限流、熔断、SSE 连接治理、备份恢复演练和灰度发布。"
+        }
+      }
+    ];
+
+    // Interactives
+    const modal = document.getElementById('nodeModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalSubtitle = document.getElementById('modalSubtitle');
+    const modalContent = document.getElementById('modalContent');
+    const adrDrawer = document.getElementById('adrDrawer');
+    
+    // Open Modal
+    document.querySelectorAll('.node-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-node');
+        if(nodesData[key]) {
+          const data = nodesData[key];
+          modalTitle.textContent = data.title;
+          modalSubtitle.textContent = data.subtitle;
+          modalContent.innerHTML = data.panels.map(p => `
+            <div class="modal-panel ${p.type === 'scenario' ? 'scenario' : ''}">
+              <h4>${p.title}</h4>
+              <div class="modal-text">${formatRichText(p.body)}</div>
+            </div>
+          `).join('');
+          modal.classList.add('open');
+          modal.setAttribute('aria-hidden', 'false');
+        }
+      });
+    });
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function formatRichText(text) {
+      const safe = escapeHtml(text);
+      if (safe.includes('\n')) {
+        return `<pre>${safe}</pre>`;
+      }
+      return `<p>${safe}</p>`;
+    }
+
+    // Close Actions
+    document.getElementById('btnCloseModal').addEventListener('click', () => {
+      modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true');
+    });
+    modal.addEventListener('click', e => { if(e.target === modal) { modal.classList.remove('open'); }});
+    
+    document.getElementById('btnOpenAdr').addEventListener('click', () => {
+      const list = document.getElementById('adrList');
+      if(list.innerHTML.trim() === '') {
+        list.innerHTML = adrData.map(a => `
+          <div class="adr-card">
+            <h4>${a.title}</h4>
+            <span class="adr-badge">${a.core}</span>
+            <div class="adr-fields">
+              ${Object.entries(a.fields).map(([label, value]) => `
+                <div class="adr-field">
+                  <strong>${label}</strong>
+                  <p>${value}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('');
+      }
+      adrDrawer.classList.add('open');
+      adrDrawer.setAttribute('aria-hidden', 'false');
+    });
+    
+    document.getElementById('btnCloseAdr').addEventListener('click', () => {
+      adrDrawer.classList.remove('open'); adrDrawer.setAttribute('aria-hidden', 'true');
+    });
+    adrDrawer.addEventListener('click', e => { if(e.target === adrDrawer) { adrDrawer.classList.remove('open'); }});
+
+    document.addEventListener('keydown', e => {
+      if(e.key === 'Escape') {
+        modal.classList.remove('open');
+        adrDrawer.classList.remove('open');
+      }
+    });
+
+    // Tabs logic
+    const tabs = document.querySelectorAll('.dd-tab');
+    const topics = document.querySelectorAll('.topic-content');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        topics.forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.getAttribute('data-target')).classList.add('active');
+      });
+    });
+
+    // View toggles logic
+    const vToggles = document.querySelectorAll('.view-toggle');
+    vToggles.forEach(btn => {
+      btn.addEventListener('click', () => {
+        vToggles.forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        const view = btn.getAttribute('data-view');
+        document.querySelectorAll('.topology-wrap').forEach(wrap => {
+          wrap.setAttribute('data-view', view);
+        });
+      });
+    });
+  </script>
+</body>
+</html>
